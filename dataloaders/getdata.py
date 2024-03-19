@@ -36,3 +36,6 @@ def get_loader(data_dir, datasetS, datasetT, batch_size):
     domain_loader_val = DataLoader(domain_val, batch_size=batch_size, shuffle=False, num_workers=2, pin_memory=True)
 
     return domain_loaderS, domain_loaderT, domain_loader_val
+
+def get_transforms():
+    return composed_transforms_tr, composed_transforms_ts
