@@ -2,6 +2,9 @@ from datetime import datetime
 import os
 import os.path as osp
 
+import sys
+sys.path[0]='/kaggle/working/DiffPL'
+
 # PyTorch includes
 import torch
 from torchvision import transforms
@@ -23,7 +26,7 @@ def main():
     parser = argparse.ArgumentParser(
             formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         )
-    parser.add_argument('-g', '--gpu', type=int, default=7, help='gpu id')
+    parser.add_argument('-g', '--gpu', type=int, default=0, help='gpu id')
     parser.add_argument('--resume', default=None, help='checkpoint path')
 
     # configurations (same configuration as original work)
@@ -70,7 +73,7 @@ def main():
     )
     parser.add_argument(
         '--data-dir',
-        default='../../Data/Fundus',
+        default='/kaggle/input/fundus/Fundus',
         help='data root path'
     )
     parser.add_argument(
