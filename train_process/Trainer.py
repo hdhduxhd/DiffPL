@@ -197,7 +197,7 @@ class Trainer(object):
                        list(metrics) + [elapsed_time] + ['best model epoch: %d' % self.best_epoch]
                 log = map(str, log)
                 f.write(','.join(log) + '\n')
-            self.writer.add_scalar('best_model_epoch', self.best_epoch, self.epoch * (len(self.domain_loaderS)))
+            # self.writer.add_scalar('best_model_epoch', self.best_epoch, self.epoch * (len(self.domain_loaderS)))
             if training:
                 self.model_gen.train()
                 self.model_dis.train()
