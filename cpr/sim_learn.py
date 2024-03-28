@@ -13,6 +13,7 @@ import torch.backends.cudnn as cudnn
 import random
 import numpy as np
 import sys
+sys.path[0]='/kaggle/working/DiffPL/cpr'
 
 bceloss = torch.nn.BCELoss(reduction='none')
 kl_loss = torch.nn.KLDivLoss()
@@ -50,15 +51,15 @@ import os.path as osp
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model-file', type=str, default='../logs/source/checkpoint_185.pth.tar')#D4/checkpoint_170.pth.tar
+    parser.add_argument('--model-file', type=str, default='/kaggle/input/fundus-pretrain/best_on_domain1.tar')#D4/checkpoint_170.pth.tar
     parser.add_argument('--dataset', type=str, default='Domain2')#Domain1
     parser.add_argument('--source', type=str, default='Domain1')#Domain4
     parser.add_argument('-g', '--gpu', type=int, default=0)
-    parser.add_argument('--data-dir', default='../../../Data/Fundus/')
+    parser.add_argument('--data-dir', default='/kaggle/input/fundus/Fundus')
     parser.add_argument('--out-stride',type=int,default=16)
     parser.add_argument('--sync-bn',type=bool,default=True)
     parser.add_argument('--freeze-bn',type=bool,default=False)
-    parser.add_argument('--pseudo',type=str,default='../generate_pseudo/pseudolabel_D2.npz')
+    parser.add_argument('--pseudo',type=str,default='/kaggle/input/fundus-pseudo/pseudolabel_D2.npz')
     parser.add_argument('--radius',type=int,default=4)
 
     args = parser.parse_args()
