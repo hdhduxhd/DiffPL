@@ -152,6 +152,9 @@ if __name__ == '__main__':
     print('%.4f,%.4f'%(dice_before_cup,dice_after_cup))
     print('%.4f,%.4f'%(dice_before_disc,dice_after_disc))
 
+    if not os.path.exists('./log'):
+        os.mkdir('./log')
+    
     if args.dataset=="Domain2":
         np.savez('./log/pseudolabel_D2_new', pseudo_label_dic, prob_dic)
 
