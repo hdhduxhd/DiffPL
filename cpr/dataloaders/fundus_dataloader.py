@@ -111,7 +111,7 @@ class FundusSegmentation(Dataset):
 
         _img = Image.open(self.image_list[index]['image']).convert('RGB')
         _target = Image.open(self.image_list[index]['label'])
-        if _target.mode is 'RGB':
+        if _target.mode == 'RGB':
             _target = _target.convert('L')
         _img_name = self.image_list[index]['image'].split('/')[-1]
 
@@ -131,7 +131,7 @@ class FundusSegmentation(Dataset):
         for index in range(img_num):
             self.image_pool.append(Image.open(self.image_list[index]['image']).convert('RGB'))
             _target = Image.open(self.image_list[index]['label'])
-            if _target.mode is 'RGB':
+            if _target.mode == 'RGB':
                 _target = _target.convert('L')
             self.label_pool.append(_target)
             _img_name = self.image_list[index]['image'].split('/')[-1]
@@ -204,7 +204,7 @@ class FundusSegmentation_wsim(Dataset):
 
         _img = Image.open(self.image_list[index]['image']).convert('RGB')
         _target = Image.open(self.image_list[index]['label'])
-        if _target.mode is 'RGB':
+        if _target.mode == 'RGB':
             _target = _target.convert('L')
         _img_name = self.image_list[index]['image'].split('/')[-1]
 
@@ -261,7 +261,7 @@ class FundusSegmentation_wsim(Dataset):
         for index in range(img_num):
             self.image_pool.append(Image.open(self.image_list[index]['image']).convert('RGB'))
             _target = Image.open(self.image_list[index]['label'])
-            if _target.mode is 'RGB':
+            if _target.mode == 'RGB':
                 _target = _target.convert('L')
             self.label_pool.append(_target)
             _img_name = self.image_list[index]['image'].split('/')[-1]
@@ -335,7 +335,7 @@ class FundusSegmentation_wprob(Dataset):
 
         _img = Image.open(self.image_list[index]['image']).convert('RGB')
         _target = Image.open(self.image_list[index]['label'])
-        if _target.mode is 'RGB':
+        if _target.mode == 'RGB':
             _target = _target.convert('L')
         _img_name = self.image_list[index]['image'].split('/')[-1]
 
@@ -395,7 +395,7 @@ class FundusSegmentation_wprob(Dataset):
         for index in range(img_num):
             self.image_pool.append(Image.open(self.image_list[index]['image']).convert('RGB'))
             _target = Image.open(self.image_list[index]['label'])
-            if _target.mode is 'RGB':
+            if _target.mode == 'RGB':
                 _target = _target.convert('L')
             self.label_pool.append(_target)
             _img_name = self.image_list[index]['image'].split('/')[-1]
