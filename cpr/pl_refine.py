@@ -12,6 +12,8 @@ import torch.nn.functional as F
 import os.path
 import imageio
 import sys
+sys.path[0]='/kaggle/working/DiffPL/cpr'
+
 from dataloaders import fundus_dataloader as DL
 from dataloaders import custom_transforms as tr
 from torchvision import transforms
@@ -24,22 +26,22 @@ import networks.deeplabv3 as netd
 
 
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '2'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--weights", type=str, default='./log/sim_learn_D2.pth.tar')
+    parser.add_argument("--weights", type=str, default='/kaggle/input/fundus-pretrain/sim_learn_D2.pth.tar')
     parser.add_argument("--num_workers", default=0, type=int)#8
     #parser.add_argument("--alpha", default=16, type=int)
     parser.add_argument("--out_rw", type=str, default='./temp')
     parser.add_argument("--beta", default=2, type=int)#8
     parser.add_argument("--logt", default=2, type=int)#8
     parser.add_argument('--dataset', type=str, default='Domain2')
-    parser.add_argument('--data-dir', default='../../../Data/Fundus/')
+    parser.add_argument('--data-dir', default='/kaggle/input/fundus/Fundus')
     parser.add_argument('--out-stride',type=int,default=16)
     parser.add_argument('--sync-bn',type=bool,default=True)
     parser.add_argument('--freeze-bn',type=bool,default=False)
-    parser.add_argument('--pseudo', type=str, default='../generate_pseudo/pseudolabel_D2.npz')
+    parser.add_argument('--pseudo', type=str, default='/kaggle/input/fundus-pseudo/pseudolabel_D2.npz')
     parser.add_argument('--radius',type=int,default=4)
 
     args = parser.parse_args()
