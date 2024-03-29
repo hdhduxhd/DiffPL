@@ -20,15 +20,48 @@ See frequently asked questions at: https://github.com/junyanz/pytorch-CycleGAN-a
 """
 import time
 from CycleGAN.options.train_options import TrainOptions
-from data import create_dataset
+# from data import create_dataset
 from CycleGAN.models import create_model
 from CycleGAN.util.visualizer import Visualizer
+
+from dataloaders import fundus_dataloader as DL
+from dataloaders import custom_transforms as tr
+
 
 if __name__ == '__main__':
     opt = TrainOptions().parse()   # get training options
     dataset = create_dataset(opt)  # create a dataset given opt.dataset_mode and other options
     dataset_size = len(dataset)    # get the number of images in the dataset.
     print('The number of training images = %d' % dataset_size)
+    # 1. dataset
+    composed_transforms_tr = transforms.Compose([
+        #tr.Resize(512),###
+        tr.RandomScaleCrop(512),
+        tr.RandomRotate(),
+        tr.RandomFlip(),
+        tr.elastic_transform(),
+        tr.add_salt_pepper_noise(),
+        tr.adjust_light(),
+        tr.eraser(),
+        tr.Normalize_tf(),
+        tr.ToTensor()
+    ])
+
+    composed_transforms_ts = transforms.Compose([
+        # tr.RandomCrop(512),
+        tr.Resize(512),
+        tr.Normalize_tf(),
+        tr.ToTensor()
+    ])
+
+    domain = DL.FundusSegmentation(base_dir=args.data_dir, dataset=args.datasetS, split='train/ROIs', transform=composed_transforms_tr)
+    domain_loaderS = DataLoader(domain, batch_size=args.batch_size, shuffle=True, num_workers=2, pin_memory=True)
+
+    domain_T = DL.FundusSegmentation(base_dir=args.data_dir, dataset=args.datasetT, split='train/ROIs', transform=composed_transforms_tr)
+    domain_loaderT = DataLoader(domain_T, batch_size=args.batch_size, shuffle=False, num_workers=2, pin_memory=True)
+
+    domain_val = DL.FundusSegmentation(base_dir=args.data_dir, dataset=args.datasetS, split='test/ROIs', transform=composed_transforms_ts)
+    domain_loader_val = DataLoader(domain_val, batch_size=args.batch_size, shuffle=False, num_workers=2, pin_memory=True)
 
     model = create_model(opt)      # create a model given opt.model and other options
     model.setup(opt)               # regular setup: load and print networks; create schedulers
