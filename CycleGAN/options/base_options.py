@@ -2,7 +2,7 @@ import argparse
 import os
 from CycleGAN.util import util
 import torch
-import CycleGAN.models
+from CycleGAN import models
 # import data
 
 
