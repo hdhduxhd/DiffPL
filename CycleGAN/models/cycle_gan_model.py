@@ -1,6 +1,6 @@
 import torch
 import itertools
-from utils.image_pool import ImagePool
+from CycleGAN.util.image_pool import ImagePool
 from CycleGAN.models.base_model import BaseModel
 from CycleGAN.models import networks
 
