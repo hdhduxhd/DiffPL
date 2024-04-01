@@ -19,6 +19,8 @@ See training and test tips at: https://github.com/junyanz/pytorch-CycleGAN-and-p
 See frequently asked questions at: https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix/blob/master/docs/qa.md
 """
 import time
+import numpy as np
+import torch
 from CycleGAN.options.train_options import TrainOptions
 # from data import create_dataset
 from CycleGAN.models import create_model
@@ -30,9 +32,9 @@ from dataloaders import custom_transforms as tr
 
 if __name__ == '__main__':
     opt = TrainOptions().parse()   # get training options
-    dataset = create_dataset(opt)  # create a dataset given opt.dataset_mode and other options
-    dataset_size = len(dataset)    # get the number of images in the dataset.
-    print('The number of training images = %d' % dataset_size)
+    # dataset = create_dataset(opt)  # create a dataset given opt.dataset_mode and other options
+    # dataset_size = len(dataset)    # get the number of images in the dataset.
+    # print('The number of training images = %d' % dataset_size)
     # 1. dataset
     composed_transforms_tr = transforms.Compose([
         #tr.Resize(512),###
@@ -54,15 +56,22 @@ if __name__ == '__main__':
         tr.ToTensor()
     ])
 
-    domain = DL.FundusSegmentation(base_dir=args.data_dir, dataset=args.datasetS, split='train/ROIs', transform=composed_transforms_tr)
-    domain_loaderS = DataLoader(domain, batch_size=args.batch_size, shuffle=True, num_workers=2, pin_memory=True)
+    domain = DL.FundusSegmentation(base_dir=opt.data_dir, dataset=opt.datasetS, split='train/ROIs', transform=composed_transforms_ts)
+    domain_loaderS = DataLoader(domain, batch_size=opt.batch_size, shuffle=True, num_workers=2, pin_memory=True)
+    domain_iterS = iter(domain_loaderS)
 
-    domain_T = DL.FundusSegmentation(base_dir=args.data_dir, dataset=args.datasetT, split='train/ROIs', transform=composed_transforms_tr)
-    domain_loaderT = DataLoader(domain_T, batch_size=args.batch_size, shuffle=False, num_workers=2, pin_memory=True)
+    domain_T = DL.FundusSegmentation(base_dir=opt.data_dir, dataset=opt.datasetT, split='train/ROIs', transform=composed_transforms_ts)
+    domain_loaderT = DataLoader(domain_T, batch_size=opt.batch_size, shuffle=False, num_workers=2, pin_memory=True)
+    domain_iterT = iter(domain_loaderT)
 
-    domain_val = DL.FundusSegmentation(base_dir=args.data_dir, dataset=args.datasetS, split='test/ROIs', transform=composed_transforms_ts)
-    domain_loader_val = DataLoader(domain_val, batch_size=args.batch_size, shuffle=False, num_workers=2, pin_memory=True)
+    domain_val = DL.FundusSegmentation(base_dir=opt.data_dir, dataset=opt.datasetS, split='test/ROIs', transform=composed_transforms_ts)
+    domain_loader_val = DataLoader(domain_val, batch_size=opt.batch_size, shuffle=False, num_workers=2, pin_memory=True)
 
+    npfilename = '/kaggle/input/fundus-pseudo/pseudolabel_D2.npz'
+    npfilename_new = '/kaggle/input/fundus-pseudo/pseudolabel_D2_new.npz'
+    refine_npdata = np.load(npfilename_new, allow_pickle=True)
+    refine_pseudo_label_dic = refine_npdata['arr_0'].item()
+    
     model = create_model(opt)      # create a model given opt.model and other options
     model.setup(opt)               # regular setup: load and print networks; create schedulers
     visualizer = Visualizer(opt)   # create a visualizer that display/save images and plots
@@ -74,7 +83,26 @@ if __name__ == '__main__':
         epoch_iter = 0                  # the number of training iterations in current epoch, reset to 0 every epoch
         visualizer.reset()              # reset the visualizer: make sure it saves the results to HTML at least once every epoch
         model.update_learning_rate()    # update learning rates in the beginning of every epoch.
-        for i, data in enumerate(dataset):  # inner loop within one epoch
+
+        for i in range(max(len(domain_loaderS),len(domain_loaderT))):
+            try:
+                sample = next(domain_iterS)
+                source_image, source_label, source_img_name = sample['image'], sample['map'], sample['img_name']
+            except Exception as err:
+                domain_iterS = iter(domain_loaderS)
+                sample = next(domain_iterS)
+                source_image, source_label, source_img_name = sample['image'], sample['map'], sample['img_name']
+            try:
+                sample = next(domain_iterT)
+                target_image, target_label, target_img_name = sample['image'], sample['map'], sample['img_name']
+                target_pl = torch.from_numpy(refine_pseudo_label_dic.get(target_img_name))
+            except Exception as err:
+                domain_iterT = iter(domain_loaderT)
+                sample = next(domain_iterT)
+                target_image, target_label, target_img_name = sample['image'], sample['map'], sample['img_name']
+                target_pl = torch.from_numpy(refine_pseudo_label_dic.get(target_img_name))
+
+            data = {"A": source_label, "B": target_pl}
             iter_start_time = time.time()  # timer for computation per iteration
             if total_iters % opt.print_freq == 0:
                 t_data = iter_start_time - iter_data_time
