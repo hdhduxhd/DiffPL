@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import sys
+sys.path[0]='/kaggle/working/DiffPL'
 import ntpath
 import time
 from CycleGAN.util import util, html
