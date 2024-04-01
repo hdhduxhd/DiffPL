@@ -21,6 +21,8 @@ See frequently asked questions at: https://github.com/junyanz/pytorch-CycleGAN-a
 import time
 import numpy as np
 import torch
+from torchvision import transforms
+from torch.utils.data import DataLoader
 import sys
 sys.path[0]='/kaggle/working/DiffPL'
 from CycleGAN.options.train_options import TrainOptions
