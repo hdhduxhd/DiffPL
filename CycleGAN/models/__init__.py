@@ -19,6 +19,8 @@ See our template model class 'template_model.py' for more details.
 """
 
 import importlib
+import sys
+sys.path[0]='/kaggle/working/DiffPL'
 from CycleGAN.models.base_model import BaseModel
 
 
