@@ -1,5 +1,7 @@
 import argparse
 import os
+import sys
+sys.path[0]='/kaggle/working/DiffPL'
 from CycleGAN.util import util
 import torch
 from CycleGAN import models
