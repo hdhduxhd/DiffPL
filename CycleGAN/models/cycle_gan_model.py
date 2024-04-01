@@ -1,5 +1,7 @@
 import torch
 import itertools
+import sys
+sys.path[0]='/kaggle/working/DiffPL'
 from CycleGAN.util.image_pool import ImagePool
 from CycleGAN.models.base_model import BaseModel
 from CycleGAN.models import networks
