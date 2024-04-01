@@ -106,7 +106,7 @@ if __name__ == '__main__':
                 target_image, target_label, target_img_name = sample['image'], sample['map'], sample['img_name']
                 target_pl = torch.stack([torch.from_numpy(refine_pseudo_label_dic.get(i)) for i in target_img_name])
 
-            data = {"A": source_label, "B": target_pl}
+            data = {"A": source_label.float(), "B": target_pl}
             iter_start_time = time.time()  # timer for computation per iteration
             if total_iters % opt.print_freq == 0:
                 t_data = iter_start_time - iter_data_time
