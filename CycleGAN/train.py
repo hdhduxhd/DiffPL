@@ -99,12 +99,12 @@ if __name__ == '__main__':
             try:
                 sample = next(domain_iterT)
                 target_image, target_label, target_img_name = sample['image'], sample['map'], sample['img_name']
-                target_pl = torch.from_numpy(refine_pseudo_label_dic.get(target_img_name))
+                target_pl = torch.stack([torch.from_numpy(refine_pseudo_label_dic.get(i)) for i in target_img_name])
             except Exception as err:
                 domain_iterT = iter(domain_loaderT)
                 sample = next(domain_iterT)
                 target_image, target_label, target_img_name = sample['image'], sample['map'], sample['img_name']
-                target_pl = torch.from_numpy(refine_pseudo_label_dic.get(target_img_name))
+                target_pl = torch.stack([torch.from_numpy(refine_pseudo_label_dic.get(i)) for i in target_img_name])
 
             data = {"A": source_label, "B": target_pl}
             iter_start_time = time.time()  # timer for computation per iteration
