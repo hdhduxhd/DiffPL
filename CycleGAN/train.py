@@ -75,6 +75,7 @@ if __name__ == '__main__':
     npfilename_new = '/kaggle/input/fundus-pseudo/pseudolabel_D2_new.npz'
     refine_npdata = np.load(npfilename_new, allow_pickle=True)
     refine_pseudo_label_dic = refine_npdata['arr_0'].item()
+    refine_prob_dic = refine_npdata['arr_1'].item()
     
     model = create_model(opt)      # create a model given opt.model and other options
     model.setup(opt)               # regular setup: load and print networks; create schedulers
@@ -99,14 +100,14 @@ if __name__ == '__main__':
             try:
                 sample = next(domain_iterT)
                 target_image, target_label, target_img_name = sample['image'], sample['map'], sample['img_name']
-                target_pl = torch.stack([torch.from_numpy(refine_pseudo_label_dic.get(i)) for i in target_img_name])
+                target_pl = torch.stack([torch.from_numpy(refine_prob_dic.get(i)) for i in target_img_name])
             except Exception as err:
                 domain_iterT = iter(domain_loaderT)
                 sample = next(domain_iterT)
                 target_image, target_label, target_img_name = sample['image'], sample['map'], sample['img_name']
-                target_pl = torch.stack([torch.from_numpy(refine_pseudo_label_dic.get(i)) for i in target_img_name])
+                target_pl = torch.stack([torch.from_numpy(refine_prob_dic.get(i)) for i in target_img_name])
 
-            data = {"A": source_label.float(), "B": target_pl.float()}
+            data = {"A": source_label.float(), "B": target_pl}
             iter_start_time = time.time()  # timer for computation per iteration
             if total_iters % opt.print_freq == 0:
                 t_data = iter_start_time - iter_data_time
