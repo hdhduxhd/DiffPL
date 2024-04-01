@@ -2,6 +2,8 @@ import os
 import torch
 from collections import OrderedDict
 from abc import ABC, abstractmethod
+import sys
+sys.path[0]='/kaggle/working/DiffPL'
 from CycleGAN.models import networks
 
 
