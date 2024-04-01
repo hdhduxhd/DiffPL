@@ -1,3 +1,5 @@
+import sys
+sys.path[0]='/kaggle/working/DiffPL'
 from CycleGAN.options.base_options import BaseOptions
 
 
