@@ -25,7 +25,7 @@ from torchvision import transforms
 from torch.utils.data import DataLoader
 import sys
 sys.path[0]='/kaggle/working/DiffPL'
-from CycleGAN.options.base_options import BaseOptions
+from CycleGAN.options.test_options import TestOptions
 from CycleGAN.models import networks
 from cpr.utils.metrics import *
 
@@ -34,7 +34,7 @@ from dataloaders import custom_transforms as tr
 
 
 if __name__ == '__main__':
-    opt = BaseOptions().parse()   # get training options
+    opt = TestOptions().parse()   # get training options
     opt.add_argument("--weights", type=str, default='/kaggle/input/fundus_pl_refine/pytorch/resnet_9blocks/1/200_net_G_B.pth')
     # 1. dataset
     composed_transforms_tr = transforms.Compose([
