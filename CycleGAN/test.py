@@ -35,7 +35,6 @@ from dataloaders import custom_transforms as tr
 
 if __name__ == '__main__':
     opt = TestOptions().parse()   # get training options
-    opt.add_argument("--weights", type=str, default='/kaggle/input/fundus_pl_refine/pytorch/resnet_9blocks/1/200_net_G_B.pth')
     # 1. dataset
     composed_transforms_tr = transforms.Compose([
         #tr.Resize(512),###
