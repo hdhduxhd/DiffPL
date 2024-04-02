@@ -105,7 +105,7 @@ def dice_coeff_2label(pred, target):
     """
 
     target = target.data.cpu()
-    pred = torch.sigmoid(pred)
+    # pred = torch.sigmoid(pred)
     pred = pred.data.cpu()
     pred[pred > 0.75] = 1
     pred[pred <= 0.75] = 0
