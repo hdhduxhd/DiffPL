@@ -26,7 +26,7 @@ from torch.utils.data import DataLoader
 import sys
 sys.path[0]='/kaggle/working/DiffPL'
 from CycleGAN.options.test_options import TestOptions
-from CycleGAN.models import networks
+from CycleGAN.models import create_model
 from cpr.utils.metrics import *
 
 from dataloaders import fundus_dataloader as DL
