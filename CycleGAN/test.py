@@ -71,8 +71,10 @@ if __name__ == '__main__':
     refine_pseudo_label_dic = refine_npdata['arr_0'].item()
     refine_prob_dic = refine_npdata['arr_1'].item()
     
-    model = networks.define_G(opt.output_nc, opt.input_nc, opt.ngf, opt.netG, opt.norm, not opt.no_dropout, opt.init_type, opt.init_gain, opt.gpu_ids)
-    model = torch.load(opt.weights)
+    # model = networks.define_G(opt.output_nc, opt.input_nc, opt.ngf, opt.netG, opt.norm, not opt.no_dropout, opt.init_type, opt.init_gain, opt.gpu_ids)
+    # model = torch.load(opt.weights)
+    model = create_model(opt)      # create a model given opt.model and other options
+    model.setup(opt)               # regular setup: load and print networks; create schedulers
     model.eval()
     device = torch.device('cuda:{}'.format(opt.gpu_ids[0])) if opt.gpu_ids else torch.device('cpu')  # get device name: CPU or GPU
 
