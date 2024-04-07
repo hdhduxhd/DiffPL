@@ -25,8 +25,8 @@ def dice_coefficient_numpy(binary_segmentation, binary_gt_label):
     '''
 
     # turn all variables to booleans, just in case
-    binary_segmentation = np.asarray(binary_segmentation, dtype=np.bool)
-    binary_gt_label = np.asarray(binary_gt_label, dtype=np.bool)
+    binary_segmentation = np.asarray(binary_segmentation, dtype=bool)
+    binary_gt_label = np.asarray(binary_gt_label, dtype=bool)
 
     # compute the intersection
     intersection = np.logical_and(binary_segmentation, binary_gt_label)
