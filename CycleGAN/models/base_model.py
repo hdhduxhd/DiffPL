@@ -196,10 +196,13 @@ class BaseModel(ABC):
                 if hasattr(state_dict, '_metadata'):
                     del state_dict._metadata
 
+                new_state_dict = {}
                 # patch InstanceNorm checkpoints prior to 0.4
                 for key in list(state_dict.keys()):  # need to copy keys here because we mutate in loop
                     self.__patch_instance_norm_state_dict(state_dict, net, key.split('.'))
-                net.load_state_dict(state_dict)
+                    new_key = key.replace('.5.', '.6.')  # 修改键的结构
+                    new_state_dict[new_key] = state_dict[key]
+                net.load_state_dict(new_state_dict)
 
     def print_networks(self, verbose):
         """Print the total number of parameters in the network and (if verbose) network architecture
