@@ -90,7 +90,9 @@ if __name__ == '__main__':
         target_label = target_label.to(device)
         target_pl = target_pl.float().to(device)
         target_prob_pl = target_prob_pl.to(device)
-        target_new_pl = model.netG_B (target_prob_pl)
+        target_new_pl = model.netG_A(model.netG_B(target_prob_pl))
+        target_new_pl[target_new_pl > 0.75] = 1
+        target_new_pl[target_new_pl <= 0.75] = 0
       
         dice_prob_cup, dice_prob_disc = dice_coeff_2label(target_pl, target_label)
         dice_before_cup += dice_prob_cup
