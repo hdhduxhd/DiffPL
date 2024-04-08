@@ -42,7 +42,7 @@ if __name__ == '__main__':
     # 1. dataset
     composed_transforms_tr = transforms.Compose([
         #tr.Resize(512),###
-        tr.RandomScaleCrop(512),
+        tr.RandomScaleCrop(256),
         tr.RandomRotate(),
         tr.RandomFlip(),
         tr.elastic_transform(),
@@ -55,7 +55,7 @@ if __name__ == '__main__':
 
     composed_transforms_ts = transforms.Compose([
         # tr.RandomCrop(512),
-        tr.Resize(512),
+        tr.Resize(256),
         tr.Normalize_tf(),
         tr.ToTensor()
     ])
