@@ -21,6 +21,7 @@ See frequently asked questions at: https://github.com/junyanz/pytorch-CycleGAN-a
 import time
 import numpy as np
 import torch
+import torch.nn.functional as F
 from torchvision import transforms
 from torch.utils.data import DataLoader
 import sys
