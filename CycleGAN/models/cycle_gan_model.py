@@ -89,7 +89,7 @@ class CycleGANModel(BaseModel):
                 nn.Conv2d(16, 32, kernel_size=3, stride=2, padding=1),
                 nn.ReLU(),
                 nn.Flatten(),
-                nn.Linear(32 * (512//8) * (512//8), 64),
+                nn.Linear(32 * (256//8) * (256//8), 64),
                 nn.ReLU(),
                 nn.Linear(64, 1),
                 nn.Sigmoid()
