@@ -138,7 +138,7 @@ class CycleGANModel(BaseModel):
         self.real_B = input['B' if AtoB else 'A'].to(self.device)
         # self.image_paths = input['A_paths' if AtoB else 'B_paths']
         if self.use_diffusion:
-            self.t = self.noise_level(self.real_B).mul(2000)
+            self.t = self.noise_level(self.real_B).mul(2000).to(torch.int64)
             print(self.t)
 
     def forward(self):
