@@ -200,7 +200,7 @@ class BaseModel(ABC):
                 # patch InstanceNorm checkpoints prior to 0.4
                 for key in list(state_dict.keys()):  # need to copy keys here because we mutate in loop
                     self.__patch_instance_norm_state_dict(state_dict, net, key.split('.'))
-                    new_key = key.replace('.5.', '.6.')  # 修改键的结构
+                    # new_key = key.replace('.5.', '.6.')  # 修改键的结构
                     new_state_dict[new_key] = state_dict[key]
                 net.load_state_dict(new_state_dict)
 
