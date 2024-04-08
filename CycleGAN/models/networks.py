@@ -543,6 +543,7 @@ class UnetSkipConnectionBlock(nn.Module):
 
 class DiffusionNoiseGenerator(nn.Module):
     def __init__(self, input_nc, output_nc, ngf=64, norm_layer=nn.BatchNorm2d, use_dropout=False, n_blocks=6):
+        super(DiffusionNoiseGenerator, self).__init__()
         self.generator = ResnetGenerator(input_nc, output_nc, ngf, norm_layer, use_dropout, n_blocks)
         self.diffusion = GaussianDiffusion()
     def forward(self, x, t):
@@ -552,6 +553,7 @@ class DiffusionNoiseGenerator(nn.Module):
 
 class DiffusionDenoiseGenerator(nn.Module):
     def __init__(self, input_nc, output_nc, ngf=64, norm_layer=nn.BatchNorm2d, use_dropout=False, n_blocks=6):
+        super(DiffusionDenoiseGenerator, self).__init__()
         self.generator = ResnetGenerator(input_nc*2, output_nc, ngf, norm_layer, use_dropout, n_blocks)
         self.diffusion = GaussianDiffusion()
         self.denoise_model = UNet(in_channel=input_nc, out_channel=output_nc)
