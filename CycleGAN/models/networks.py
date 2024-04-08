@@ -3,6 +3,8 @@ import torch.nn as nn
 from torch.nn import init
 import functools
 from torch.optim import lr_scheduler
+from ddpm.diffusion import GaussianDiffusion
+from ddpm.unet import UNet
 
 
 ###############################################################################
@@ -155,6 +157,10 @@ def define_G(input_nc, output_nc, ngf, netG, norm='batch', use_dropout=False, in
         net = UnetGenerator(input_nc, output_nc, 7, ngf, norm_layer=norm_layer, use_dropout=use_dropout)
     elif netG == 'unet_256':
         net = UnetGenerator(input_nc, output_nc, 8, ngf, norm_layer=norm_layer, use_dropout=use_dropout)
+    elif netG == 'diffusion_noise':
+        net = DiffusionNoiseGenerator(input_nc, output_nc, 8, ngf, norm_layer=norm_layer, use_dropout=use_dropout, n_blocks=9)
+    elif netG == 'diffusion_denoise':
+        net = DiffusionDenoiseGenerator(input_nc, output_nc, 8, ngf, norm_layer=norm_layer, use_dropout=use_dropout, n_blocks=9)
     else:
         raise NotImplementedError('Generator model name [%s] is not recognized' % netG)
     return init_net(net, init_type, init_gain, gpu_ids)
@@ -535,6 +541,23 @@ class UnetSkipConnectionBlock(nn.Module):
         else:   # add skip connections
             return torch.cat([x, self.model(x)], 1)
 
+class DiffusionNoiseGenerator(nn.Module):
+    def __init__(self, input_nc, output_nc, ngf=64, norm_layer=nn.BatchNorm2d, use_dropout=False, n_blocks=6):
+        self.generator = ResnetGenerator(input_nc, output_nc, ngf, norm_layer, use_dropout, n_blocks)
+        self.diffusion = GaussianDiffusion()
+    def forward(self, x, t):
+        noise = torch.randn_like(x)
+        x_noisy = self.diffusion.q_sample(x, t, noise=noise)
+        return self.generator(x_noisy)
+
+class DiffusionDenoiseGenerator(nn.Module):
+    def __init__(self, input_nc, output_nc, ngf=64, norm_layer=nn.BatchNorm2d, use_dropout=False, n_blocks=6):
+        self.generator = ResnetGenerator(input_nc*2, output_nc, ngf, norm_layer, use_dropout, n_blocks)
+        self.diffusion = GaussianDiffusion()
+        self.denoise_model = UNet(in_channel=input_nc, out_channel=output_nc)
+    def forward(self, x_noisy, t):
+        x_latent = self.denoise_model(x_noisy, t)
+        return self.generator(torch.cat([x_noisy, x_latent], dim=1))
 
 class NLayerDiscriminator(nn.Module):
     """Defines a PatchGAN discriminator"""
