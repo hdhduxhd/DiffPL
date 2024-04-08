@@ -48,3 +48,28 @@ class StochasticSegmentationNetworkLossMCIntegral(nn.Module):
         loglikelihood = torch.mean(torch.logsumexp(torch.sum(log_prob, dim=-1), dim=0) - math.log(self.num_mc_samples))
         loss = -loglikelihood
         return loss
+
+
+def circularity_loss(pred, target, circularity_weight):
+    # 将概率图转换为二值化掩码
+    pred_binary = (pred > 0.5).float()
+    target_binary = (target > 0.5).float()
+
+    # 计算预测掩码的周长
+    pred_perimeter = (pred_binary[:, :, :-1] != pred_binary[:, :, 1:]).sum() + (pred_binary[:, :-1, :] != pred_binary[:, 1:, :]).sum()
+
+    # 计算真实标签的周长
+    target_perimeter = (target_binary[:, :, :-1] != target_binary[:, :, 1:]).sum() + (target_binary[:, :-1, :] != target_binary[:, 1:, :]).sum()
+
+    # 计算圆形度（这里简化为面积与周长比例）
+    pred_area = pred_binary.sum()
+    pred_circularity = pred_area / pred_perimeter
+
+    target_area = target_binary.sum()
+    target_circularity = target_area / target_perimeter
+
+    circ_loss = torch.abs(pred_circularity - target_circularity)
+
+    loss = circularity_weight * circ_loss
+
+    return loss
