@@ -75,6 +75,7 @@ class CycleGANModel(BaseModel):
         # The naming is different from those used in the paper.
         # Code (vs. paper): G_A (G), G_B (F), D_A (D_Y), D_B (D_X)
         if opt.netG == 'diffusion':
+            self.use_diffusion = True
             AtoB = self.opt.direction == 'AtoB'
             self.netG_A = networks.define_G(opt.input_nc, opt.output_nc, opt.ngf, 'diffusion_noise' if AtoB else 'diffusion_denoise', opt.norm,
                                             not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
@@ -136,13 +137,13 @@ class CycleGANModel(BaseModel):
         self.real_A = input['A' if AtoB else 'B'].to(self.device)
         self.real_B = input['B' if AtoB else 'A'].to(self.device)
         # self.image_paths = input['A_paths' if AtoB else 'B_paths']
-        if opt.netG == 'diffusion':
+        if self.use_diffusion:
             self.t = self.noise_level(self.real_B)*2000
             print(self.t)
 
     def forward(self):
         """Run forward pass; called by both functions <optimize_parameters> and <test>."""
-        if opt.netG == 'diffusion':
+        if self.use_diffusion:
             self.fake_B = self.netG_A(self.real_A, self.t)  # G_A(A)
             self.rec_A = self.netG_B(self.fake_B, self.t)   # G_B(G_A(A))
             self.fake_A = self.netG_B(self.real_B, self.t)  # G_B(B)
@@ -192,7 +193,7 @@ class CycleGANModel(BaseModel):
         lambda_B = self.opt.lambda_B
         # Identity loss
         if lambda_idt > 0:
-            if opt.netG == 'diffusion':
+            if self.use_diffusion:
                 # G_A should be identity if real_B is fed: ||G_A(B) - B||
                 self.idt_A = self.netG_A(self.real_B, self.t)
                 self.loss_idt_A = self.criterionIdt(self.idt_A, self.real_B) * lambda_B * lambda_idt
