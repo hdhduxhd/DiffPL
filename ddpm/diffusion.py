@@ -153,6 +153,10 @@ class GaussianDiffusion:
         x_latent = model(x_noisy, t)
         recon_image = recon_model(torch.cat([x_noisy, x_latent], dim=1))
         return recon_image
+
+    def get_latent(self, model, x_noisy, t):
+        x_latent = model(x_noisy, t)
+        return x_latent
     
     # compute train losses
     def train_losses(self, model, recon_model, x_start, target, t, weight=None):
@@ -162,8 +166,8 @@ class GaussianDiffusion:
         x_noisy = self.q_sample(x_start, t, noise=noise)
         predicted_noise = model(x_noisy, t)
         diff_loss = F.mse_loss(noise, predicted_noise)
-        recon_target = recon_model(torch.cat([x_noisy, predicted_noise], dim=1))
-        recon_loss = F.binary_cross_entropy(recon_target, target, weight=weight)
-        loss = diff_loss + recon_loss
-        print("diffu_loss{: .4f}||||||recon_loss{: .4f}" .format(diff_loss.item(), recon_loss.item()))
+        # recon_target = recon_model(torch.cat([x_noisy, predicted_noise], dim=1))
+        # recon_loss = F.binary_cross_entropy(recon_target, target, weight=weight)
+        loss = diff_loss
+        # print("diffu_loss{: .4f}||||||recon_loss{: .4f}" .format(diff_loss.item(), recon_loss.item()))
         return loss
