@@ -138,6 +138,7 @@ class CycleGANModel(BaseModel):
         # self.image_paths = input['A_paths' if AtoB else 'B_paths']
         if opt.netG == 'diffusion':
             self.t = self.noise_level(self.real_B)*2000
+            print(self.t)
 
     def forward(self):
         """Run forward pass; called by both functions <optimize_parameters> and <test>."""
