@@ -93,7 +93,7 @@ class CycleGANModel(BaseModel):
                 nn.ReLU(),
                 nn.Linear(64, 1),
                 nn.Sigmoid()
-            )
+            ).to(torch.device('cuda:{}'.format(opt.gpu_ids[0])) if opt.gpu_ids else torch.device('cpu'))
         else:
             self.netG_A = networks.define_G(opt.input_nc, opt.output_nc, opt.ngf, opt.netG, opt.norm,
                                             not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
