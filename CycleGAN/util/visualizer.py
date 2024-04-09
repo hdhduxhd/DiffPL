@@ -172,9 +172,7 @@ class Visualizer():
                     self.create_visdom_connections()
 
         if self.use_wandb:
-            print(epoch)
-            if epoch == 1:
-                print("sbhshsb")
+            if epoch == 2:
                 columns = [key for key, _ in visuals.items()]
                 columns.insert(0, 'epoch')
                 self.result_table = wandb.Table(columns=columns)
