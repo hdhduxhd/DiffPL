@@ -86,7 +86,7 @@ class CycleGANModel(BaseModel):
                                             not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
             self.diffusion = GaussianDiffusion()
             self.denoise_model = UNet(in_channel=opt.output_nc, out_channel=opt.output_nc)
-            self.t = torch.full((opt.batch_size,), 1000, device=self.device, dtype=torch.long).to(self.device)
+            self.t = torch.full((opt.batch_size,), 1000, device=self.device, dtype=torch.long)
         else:
             self.netG_A = networks.define_G(opt.input_nc, opt.output_nc, opt.ngf, opt.netG, opt.norm,
                                             not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
@@ -136,8 +136,6 @@ class CycleGANModel(BaseModel):
             self.noise = torch.randn_like(self.real_A)
             self.real_A_noisy = self.diffusion.q_sample(self.real_A, self.t, noise=self.noise)
             self.fake_B = self.netG_A(self.real_A_noisy)  # G_A(A)
-            print(self.fake_B)
-            print(self.t)
             self.fake_B_latent = self.denoise_model(self.fake_B, self.t)
             self.rec_A = self.netG_B(torch.cat([self.fake_B, self.fake_B_latent], dim=1))   # G_B(G_A(A))
             self.real_B_latent = self.denoise_model(self.real_B, self.t)
