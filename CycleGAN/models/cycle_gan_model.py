@@ -87,7 +87,7 @@ class CycleGANModel(BaseModel):
                                             not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
             self.diffusion = GaussianDiffusion()
             self.denoise_model = UNet(in_channel=opt.output_nc, out_channel=opt.output_nc)
-            self.t = torch.tensor([1000], dtype=torch.long, device=self.device)
+            self.t = torch.full((opt.batch_size,), 1000, device=self.device, dtype=torch.long)
         else:
             self.netG_A = networks.define_G(opt.input_nc, opt.output_nc, opt.ngf, opt.netG, opt.norm,
                                             not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
