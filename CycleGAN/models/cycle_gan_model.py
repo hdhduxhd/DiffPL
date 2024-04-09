@@ -1,11 +1,14 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import itertools
 import sys
 sys.path[0]='/kaggle/working/DiffPL'
 from CycleGAN.util.image_pool import ImagePool
 from CycleGAN.models.base_model import BaseModel
 from CycleGAN.models import networks
+from ddpm.diffusion import GaussianDiffusion
+from ddpm.unet import UNet
 from cpr.utils.losses import circularity_loss
 
 
@@ -60,6 +63,7 @@ class CycleGANModel(BaseModel):
         # specify the images you want to save/display. The training/test scripts will call <BaseModel.get_current_visuals>
         visual_names_A = ['real_A', 'fake_B', 'rec_A']
         visual_names_B = ['real_B', 'fake_A', 'rec_B']
+        self.device = torch.device('cuda:{}'.format(opt.gpu_ids[0]) if opt.gpu_ids else 'cpu')
         if self.isTrain and self.opt.lambda_identity > 0.0:  # if identity loss is used, we also visualize idt_B=G_A(B) ad idt_A=G_A(B)
             visual_names_A.append('idt_B')
             visual_names_B.append('idt_A')
@@ -76,27 +80,14 @@ class CycleGANModel(BaseModel):
         # Code (vs. paper): G_A (G), G_B (F), D_A (D_Y), D_B (D_X)
         if opt.netG == 'diffusion':
             self.use_diffusion = True
-            AtoB = self.opt.direction == 'AtoB'
-            self.netG_A = networks.define_G(opt.input_nc, opt.output_nc, opt.ngf, 'diffusion_noise' if AtoB else 'diffusion_denoise', opt.norm,
+            self.loss_names.append('N')
+            self.netG_A = networks.define_G(opt.input_nc, opt.output_nc, opt.ngf, 'resnet_9blocks', opt.norm,
                                             not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
-            self.netG_B = networks.define_G(opt.output_nc, opt.input_nc, opt.ngf, 'diffusion_denoise' if AtoB else 'diffusion_noise', opt.norm,
+            self.netG_B = networks.define_G(opt.output_nc*2, opt.input_nc, opt.ngf, 'resnet_9blocks', opt.norm,
                                             not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
-            self.noise_level = nn.Sequential(
-                nn.Conv2d(opt.input_nc, 8, kernel_size=3, stride=2, padding=1),
-                nn.InstanceNorm2d(8),  # 添加实例归一化
-                nn.ReLU(),
-                nn.Conv2d(8, 16, kernel_size=3, stride=2, padding=1),
-                nn.InstanceNorm2d(16),  # 添加实例归一化
-                nn.ReLU(),
-                nn.Conv2d(16, 32, kernel_size=3, stride=2, padding=1),
-                nn.InstanceNorm2d(32),  # 添加实例归一化
-                nn.ReLU(),
-                nn.Flatten(),
-                nn.Linear(32 * (256//8) * (256//8), 64),
-                nn.ReLU(),
-                nn.Linear(64, 1),
-                nn.Sigmoid()
-            ).to(torch.device('cuda:{}'.format(opt.gpu_ids[0])) if opt.gpu_ids else torch.device('cpu'))
+            self.diffusion = GaussianDiffusion()
+            self.denoise_model = UNet(in_channel=opt.output_nc, out_channel=opt.output_nc)
+            self.t = torch.tensor([1000], dtype=torch.long, device=self.device)
         else:
             self.netG_A = networks.define_G(opt.input_nc, opt.output_nc, opt.ngf, opt.netG, opt.norm,
                                             not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
@@ -119,12 +110,11 @@ class CycleGANModel(BaseModel):
             self.criterionCycle = torch.nn.L1Loss()
             self.criterionIdt = torch.nn.L1Loss()
             # initialize optimizers; schedulers will be automatically created by function <BaseModel.setup>.
-            if opt.netG == 'diffusion':
-                self.optimizer_G = torch.optim.Adam(itertools.chain(self.netG_A.parameters(), self.netG_B.parameters(), self.noise_level.parameters()), lr=opt.lr, betas=(opt.beta1, 0.999))
-                self.optimizer_D = torch.optim.Adam(itertools.chain(self.netD_A.parameters(), self.netD_B.parameters(), self.noise_level.parameters()), lr=opt.lr, betas=(opt.beta1, 0.999))
-            else:
-                self.optimizer_G = torch.optim.Adam(itertools.chain(self.netG_A.parameters(), self.netG_B.parameters()), lr=opt.lr, betas=(opt.beta1, 0.999))
-                self.optimizer_D = torch.optim.Adam(itertools.chain(self.netD_A.parameters(), self.netD_B.parameters()), lr=opt.lr, betas=(opt.beta1, 0.999))
+            if self.use_diffusion:
+                self.optimizer_N = torch.optim.Adam(self.denoise_model.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
+                self.optimizers.append(self.optimizer_N)
+            self.optimizer_G = torch.optim.Adam(itertools.chain(self.netG_A.parameters(), self.netG_B.parameters()), lr=opt.lr, betas=(opt.beta1, 0.999))
+            self.optimizer_D = torch.optim.Adam(itertools.chain(self.netD_A.parameters(), self.netD_B.parameters()), lr=opt.lr, betas=(opt.beta1, 0.999))
             self.optimizers.append(self.optimizer_G)
             self.optimizers.append(self.optimizer_D)
 
@@ -140,16 +130,19 @@ class CycleGANModel(BaseModel):
         self.real_A = input['A' if AtoB else 'B'].to(self.device)
         self.real_B = input['B' if AtoB else 'A'].to(self.device)
         # self.image_paths = input['A_paths' if AtoB else 'B_paths']
-        if self.use_diffusion:
-            self.t = torch.squeeze(self.noise_level(self.real_B).mul(2000).to(torch.int64), 1)
-
+    
     def forward(self):
         """Run forward pass; called by both functions <optimize_parameters> and <test>."""
         if self.use_diffusion:
-            self.fake_B = self.netG_A(self.real_A, self.t)  # G_A(A)
-            self.rec_A = self.netG_B(self.fake_B, self.t)   # G_B(G_A(A))
-            self.fake_A = self.netG_B(self.real_B, self.t)  # G_B(B)
-            self.rec_B = self.netG_A(self.fake_A, self.t)   # G_A(G_B(B))
+            self.noise = torch.randn_like(self.real_A)
+            self.real_A_noisy = self.diffusion.q_sample(self.real_A, self.t, noise=self.noise)
+            self.fake_B = self.netG_A(self.real_A_noisy)  # G_A(A)
+            self.fake_B_latent = self.denoise_model(self.fake_B, self.t)
+            self.rec_A = self.netG_B(torch.cat([self.fake_B, self.fake_B_latent], dim=1))   # G_B(G_A(A))
+            self.real_B_latent = self.denoise_model(self.real_B, self.t)
+            self.fake_A = self.netG_B(torch.cat([self.real_B, self.real_B_latent], dim=1))  # G_B(B)
+            self.fake_A_noisy = self.diffusion.q_sample(self.fake_A, self.t, noise=self.real_B_latent)
+            self.rec_B = self.netG_A(self.fake_A)   # G_A(G_B(B))
         else:
             self.fake_B = self.netG_A(self.real_A)  # G_A(A)
             self.rec_A = self.netG_B(self.fake_B)   # G_B(G_A(A))
@@ -194,21 +187,13 @@ class CycleGANModel(BaseModel):
         lambda_A = self.opt.lambda_A
         lambda_B = self.opt.lambda_B
         # Identity loss
-        if lambda_idt > 0:
-            if self.use_diffusion:
-                # G_A should be identity if real_B is fed: ||G_A(B) - B||
-                self.idt_A = self.netG_A(self.real_B, self.t)
-                self.loss_idt_A = self.criterionIdt(self.idt_A, self.real_B) * lambda_B * lambda_idt
-                # G_B should be identity if real_A is fed: ||G_B(A) - A||
-                self.idt_B = self.netG_B(self.real_A, self.t)
-                self.loss_idt_B = self.criterionIdt(self.idt_B, self.real_A) * lambda_A * lambda_idt
-            else:
-                # G_A should be identity if real_B is fed: ||G_A(B) - B||
-                self.idt_A = self.netG_A(self.real_B)
-                self.loss_idt_A = self.criterionIdt(self.idt_A, self.real_B) * lambda_B * lambda_idt
-                # G_B should be identity if real_A is fed: ||G_B(A) - A||
-                self.idt_B = self.netG_B(self.real_A)
-                self.loss_idt_B = self.criterionIdt(self.idt_B, self.real_A) * lambda_A * lambda_idt
+        if lambda_idt > 0 and not self.use_diffusion:
+            # G_A should be identity if real_B is fed: ||G_A(B) - B||
+            self.idt_A = self.netG_A(self.real_B)
+            self.loss_idt_A = self.criterionIdt(self.idt_A, self.real_B) * lambda_B * lambda_idt
+            # G_B should be identity if real_A is fed: ||G_B(A) - A||
+            self.idt_B = self.netG_B(self.real_A)
+            self.loss_idt_B = self.criterionIdt(self.idt_B, self.real_A) * lambda_A * lambda_idt
         else:
             self.loss_idt_A = 0
             self.loss_idt_B = 0
@@ -225,10 +210,21 @@ class CycleGANModel(BaseModel):
         self.loss_G = self.loss_G_A + self.loss_G_B + self.loss_cycle_A + self.loss_cycle_B + self.loss_idt_A + self.loss_idt_B
         self.loss_G.backward()
 
+    def backward_N(self):
+        self.loss_N = F.mse_loss(self.fake_B_latent, self.noise)
+        self.loss_N.backward()
+        
     def optimize_parameters(self):
         """Calculate losses, gradients, and update network weights; called in every training iteration"""
         # forward
         self.forward()      # compute fake images and reconstruction images.
+        if self.use_diffusion:
+            # N
+            self.set_requires_grad([self.netG_A, self.netG_B], False)  # Ds require no gradients when optimizing Gs
+            self.optimizer_N.zero_grad()
+            self.backward_N()
+            self.optimizer_N.step()
+            self.set_requires_grad([self.netG_A, self.netG_B], True)  # Ds require no gradients when optimizing Gs
         # G_A and G_B
         self.set_requires_grad([self.netD_A, self.netD_B], False)  # Ds require no gradients when optimizing Gs
         self.optimizer_G.zero_grad()  # set G_A and G_B's gradients to zero
