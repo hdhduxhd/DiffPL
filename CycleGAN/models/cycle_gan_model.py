@@ -211,7 +211,7 @@ class CycleGANModel(BaseModel):
 
     def backward_N(self):
         self.loss_N = F.mse_loss(self.fake_B_latent, self.noise)
-        self.loss_N.backward()
+        self.loss_N.backward(retain_graph=True)
         
     def optimize_parameters(self):
         """Calculate losses, gradients, and update network weights; called in every training iteration"""
