@@ -218,13 +218,13 @@ class CycleGANModel(BaseModel):
         # forward
         torch.autograd.set_detect_anomaly(True)
         self.forward()      # compute fake images and reconstruction images.
-        if self.use_diffusion:
-            # N
-            self.set_requires_grad([self.netG_A, self.netG_B], False)  # Ds require no gradients when optimizing Gs
-            self.optimizer_N.zero_grad()
-            self.backward_N()
-            self.optimizer_N.step()
-            self.set_requires_grad([self.netG_A, self.netG_B], True)  # Ds require no gradients when optimizing Gs
+        # if self.use_diffusion:
+        #     # N
+        #     self.set_requires_grad([self.netG_A, self.netG_B], False)  # Ds require no gradients when optimizing Gs
+        #     self.optimizer_N.zero_grad()
+        #     self.backward_N()
+        #     self.optimizer_N.step()
+        #     self.set_requires_grad([self.netG_A, self.netG_B], True)  # Ds require no gradients when optimizing Gs
         # G_A and G_B
         self.set_requires_grad([self.netD_A, self.netD_B], False)  # Ds require no gradients when optimizing Gs
         self.optimizer_G.zero_grad()  # set G_A and G_B's gradients to zero
