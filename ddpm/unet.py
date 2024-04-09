@@ -25,7 +25,7 @@ class TimeEmbedding(nn.Module):
 
     def forward(self, input):
         shape = input.shape
-        sinusoid_in = torch.ger(input.view(-1).float(), self.inv_freq.to(device=input.device))
+        sinusoid_in = torch.ger(input.view(-1).float(), self.inv_freq)
         pos_emb = torch.cat([sinusoid_in.sin(), sinusoid_in.cos()], dim=-1)
         pos_emb = pos_emb.view(*shape, self.dim)
         return pos_emb
@@ -152,15 +152,15 @@ class outblock(nn.Module):
 class UNet(nn.Module):
     def __init__(
         self,
-        in_channel=2,
-        out_channel=2,
+        in_channel=1,
+        out_channel=1,
         inner_channel=64,
         channel_mults=[1, 1, 2, 2, 4, 4],
         attn_res=[16],
         res_blocks=2,
         dropout=0//.2,
         with_time_emb=True,
-        image_size=512
+        image_size=128
     ):
         super().__init__()
 
