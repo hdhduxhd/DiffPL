@@ -172,7 +172,7 @@ class Visualizer():
                     self.create_visdom_connections()
 
         if self.use_wandb:
-            if epoch == 2:
+            if epoch <= 2:
                 columns = [key for key, _ in visuals.items()]
                 columns.insert(0, 'epoch')
                 self.result_table = wandb.Table(columns=columns)
@@ -187,7 +187,7 @@ class Visualizer():
             if epoch != self.current_epoch:
                 self.current_epoch = epoch
                 self.result_table.add_data(*table_row)
-                self.wandb_run.log({"Result": result_table})
+                self.wandb_run.log({"Result": self.result_table})
 
         if self.use_html and (save_result or not self.saved):  # save images to an HTML file if they haven't been saved.
             self.saved = True
