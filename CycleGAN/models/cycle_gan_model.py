@@ -83,17 +83,16 @@ class CycleGANModel(BaseModel):
                                             not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
             self.noise_level = nn.Sequential(
                 nn.Conv2d(opt.input_nc, 8, kernel_size=3, stride=2, padding=1),
-                nn.BatchNorm2d(8),  # 添加批归一化层
+                nn.InstanceNorm2d(8),  # 添加实例归一化
                 nn.ReLU(),
                 nn.Conv2d(8, 16, kernel_size=3, stride=2, padding=1),
-                nn.BatchNorm2d(16),  # 添加批归一化层
+                nn.InstanceNorm2d(16),  # 添加实例归一化
                 nn.ReLU(),
                 nn.Conv2d(16, 32, kernel_size=3, stride=2, padding=1),
-                nn.BatchNorm2d(32),  # 添加批归一化层
+                nn.InstanceNorm2d(32),  # 添加实例归一化
                 nn.ReLU(),
                 nn.Flatten(),
                 nn.Linear(32 * (256//8) * (256//8), 64),
-                nn.BatchNorm1d(64),  # 添加批归一化层
                 nn.ReLU(),
                 nn.Linear(64, 1),
                 nn.Sigmoid()
