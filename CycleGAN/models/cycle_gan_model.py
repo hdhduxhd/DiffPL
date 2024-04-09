@@ -63,7 +63,6 @@ class CycleGANModel(BaseModel):
         # specify the images you want to save/display. The training/test scripts will call <BaseModel.get_current_visuals>
         visual_names_A = ['real_A', 'fake_B', 'rec_A']
         visual_names_B = ['real_B', 'fake_A', 'rec_B']
-        self.device = torch.device('cuda:{}'.format(opt.gpu_ids[0]) if opt.gpu_ids else 'cpu')
         if self.isTrain and self.opt.lambda_identity > 0.0:  # if identity loss is used, we also visualize idt_B=G_A(B) ad idt_A=G_A(B)
             visual_names_A.append('idt_B')
             visual_names_B.append('idt_A')
@@ -87,7 +86,7 @@ class CycleGANModel(BaseModel):
                                             not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
             self.diffusion = GaussianDiffusion()
             self.denoise_model = UNet(in_channel=opt.output_nc, out_channel=opt.output_nc)
-            self.t = torch.full((opt.batch_size,), 1000, device=self.device, dtype=torch.long)
+            self.t = torch.full((opt.batch_size,), 1000, device=self.device, dtype=torch.long).to(self.device)
         else:
             self.netG_A = networks.define_G(opt.input_nc, opt.output_nc, opt.ngf, opt.netG, opt.norm,
                                             not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
@@ -137,6 +136,8 @@ class CycleGANModel(BaseModel):
             self.noise = torch.randn_like(self.real_A)
             self.real_A_noisy = self.diffusion.q_sample(self.real_A, self.t, noise=self.noise)
             self.fake_B = self.netG_A(self.real_A_noisy)  # G_A(A)
+            print(self.fake_B)
+            print(self.t)
             self.fake_B_latent = self.denoise_model(self.fake_B, self.t)
             self.rec_A = self.netG_B(torch.cat([self.fake_B, self.fake_B_latent], dim=1))   # G_B(G_A(A))
             self.real_B_latent = self.denoise_model(self.real_B, self.t)
