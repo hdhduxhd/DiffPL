@@ -25,7 +25,7 @@ class TimeEmbedding(nn.Module):
 
     def forward(self, input):
         shape = input.shape
-        sinusoid_in = torch.ger(input.view(-1).float(), self.inv_freq)
+        sinusoid_in = torch.ger(input.view(-1).float(), self.inv_freq.to(device=input.device))
         pos_emb = torch.cat([sinusoid_in.sin(), sinusoid_in.cos()], dim=-1)
         pos_emb = pos_emb.view(*shape, self.dim)
         return pos_emb
