@@ -109,10 +109,10 @@ class CycleGANModel(BaseModel):
             self.criterionCycle = torch.nn.L1Loss()
             self.criterionIdt = torch.nn.L1Loss()
             # initialize optimizers; schedulers will be automatically created by function <BaseModel.setup>.
-            if self.use_diffusion:
-                self.optimizer_N = torch.optim.Adam(self.denoise_model.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
-                self.optimizers.append(self.optimizer_N)
-            self.optimizer_G = torch.optim.Adam(itertools.chain(self.netG_A.parameters(), self.netG_B.parameters()), lr=opt.lr, betas=(opt.beta1, 0.999))
+            # if self.use_diffusion:
+            #     self.optimizer_N = torch.optim.Adam(self.denoise_model.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
+            #     self.optimizers.append(self.optimizer_N)
+            self.optimizer_G = torch.optim.Adam(itertools.chain(self.netG_A.parameters(), self.netG_B.parameters(), self.denoise_model.parameters()), lr=opt.lr, betas=(opt.beta1, 0.999))
             self.optimizer_D = torch.optim.Adam(itertools.chain(self.netD_A.parameters(), self.netD_B.parameters()), lr=opt.lr, betas=(opt.beta1, 0.999))
             self.optimizers.append(self.optimizer_G)
             self.optimizers.append(self.optimizer_D)
@@ -205,8 +205,9 @@ class CycleGANModel(BaseModel):
         self.loss_cycle_A = self.criterionCycle(self.rec_A, self.real_A) * lambda_A
         # Backward cycle loss || G_A(G_B(B)) - B||
         self.loss_cycle_B = self.criterionCycle(self.rec_B, self.real_B) * lambda_B
+        self.loss_N = F.mse_loss(self.fake_B_latent, self.noise)
         # combined loss and calculate gradients
-        self.loss_G = self.loss_G_A + self.loss_G_B + self.loss_cycle_A + self.loss_cycle_B + self.loss_idt_A + self.loss_idt_B
+        self.loss_G = self.loss_G_A + self.loss_G_B + self.loss_cycle_A + self.loss_cycle_B + self.loss_idt_A + self.loss_idt_B + self.loss_N
         self.loss_G.backward(retain_graph=True)
 
     def backward_N(self):
@@ -216,15 +217,14 @@ class CycleGANModel(BaseModel):
     def optimize_parameters(self):
         """Calculate losses, gradients, and update network weights; called in every training iteration"""
         # forward
-        torch.autograd.set_detect_anomaly(True)
         self.forward()      # compute fake images and reconstruction images.
-        if self.use_diffusion:
-            # N
-            self.set_requires_grad([self.netG_A, self.netG_B], False)  # Ds require no gradients when optimizing Gs
-            self.optimizer_N.zero_grad()
-            self.backward_N()
-            self.optimizer_N.step()
-            self.set_requires_grad([self.netG_A, self.netG_B], True)  # Ds require no gradients when optimizing Gs
+        # if self.use_diffusion:
+        #     # N
+        #     self.set_requires_grad([self.netG_A, self.netG_B], False)  # Ds require no gradients when optimizing Gs
+        #     self.optimizer_N.zero_grad()
+        #     self.backward_N()
+        #     self.optimizer_N.step()
+        #     self.set_requires_grad([self.netG_A, self.netG_B], True)  # Ds require no gradients when optimizing Gs
         # G_A and G_B
         self.set_requires_grad([self.netD_A, self.netD_B], False)  # Ds require no gradients when optimizing Gs
         self.optimizer_G.zero_grad()  # set G_A and G_B's gradients to zero
