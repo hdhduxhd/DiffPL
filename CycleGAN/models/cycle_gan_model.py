@@ -216,6 +216,7 @@ class CycleGANModel(BaseModel):
     def optimize_parameters(self):
         """Calculate losses, gradients, and update network weights; called in every training iteration"""
         # forward
+        torch.autograd.set_detect_anomaly(True)
         self.forward()      # compute fake images and reconstruction images.
         if self.use_diffusion:
             # N
