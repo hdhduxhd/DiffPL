@@ -60,12 +60,20 @@ class CycleGANModel(BaseModel):
         BaseModel.__init__(self, opt)
         # specify the training losses you want to print out. The training/test scripts will call <BaseModel.get_current_losses>
         self.loss_names = ['D_A', 'G_A', 'cycle_A', 'idt_A', 'D_B', 'G_B', 'cycle_B', 'idt_B']
+        if opt.use_diffusion:
+            self.use_diffusion = True
+            self.loss_names.append('N')
         # specify the images you want to save/display. The training/test scripts will call <BaseModel.get_current_visuals>
         visual_names_A = ['real_A', 'fake_B', 'rec_A']
         visual_names_B = ['real_B', 'fake_A', 'rec_B']
-        if self.isTrain and self.opt.lambda_identity > 0.0 and opt.netG != 'diffusion':  # if identity loss is used, we also visualize idt_B=G_A(B) ad idt_A=G_A(B)
+        if self.isTrain and self.opt.lambda_identity > 0.0:  # if identity loss is used, we also visualize idt_B=G_A(B) ad idt_A=G_A(B)
             visual_names_A.append('idt_B')
             visual_names_B.append('idt_A')
+        if self.use_diffusion:
+            visual_names_A.append('real_A_origin')
+            visual_names_A.append('fake_B_noisy')
+            visual_names_B.append('real_B_noisy')
+            visual_names_B.append('fake_A_noisy')
 
         self.visual_names = visual_names_A + visual_names_B  # combine visualizations for A and B
         # specify the models you want to save to the disk. The training/test scripts will call <BaseModel.save_networks> and <BaseModel.load_networks>.
@@ -73,25 +81,23 @@ class CycleGANModel(BaseModel):
             self.model_names = ['G_A', 'G_B', 'D_A', 'D_B']
         else:  # during test time, only load Gs
             self.model_names = ['G_A', 'G_B']
+        if self.use_diffusion:
+            self.model_names.append('Denoise')
+            self.model_names.append('G_D')
 
         # define networks (both Generators and discriminators)
         # The naming is different from those used in the paper.
         # Code (vs. paper): G_A (G), G_B (F), D_A (D_Y), D_B (D_X)
-        if opt.netG == 'diffusion':
-            self.use_diffusion = True
-            self.loss_names.append('N')
-            self.netG_A = networks.define_G(opt.input_nc, opt.output_nc, opt.ngf, 'resnet_9blocks', opt.norm,
-                                            not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
-            self.netG_B = networks.define_G(opt.output_nc*2, opt.input_nc, opt.ngf, 'resnet_9blocks', opt.norm,
-                                            not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
+        self.netG_A = networks.define_G(opt.input_nc, opt.output_nc, opt.ngf, opt.netG, opt.norm,
+                                        not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
+        self.netG_B = networks.define_G(opt.output_nc, opt.input_nc, opt.ngf, opt.netG, opt.norm,
+                                        not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
+        if self.use_diffusion:
             self.diffusion = GaussianDiffusion()
-            self.denoise_model = UNet(in_channel=opt.output_nc, out_channel=opt.output_nc).to(self.device)
+            self.netDenoise = UNet(in_channel=opt.output_nc, out_channel=opt.output_nc).to(self.device)
+            self.netG_D = networks.define_G(opt.output_nc*2, opt.input_nc, opt.ngf, 'resnet_9blocks', opt.norm,
+                                            not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
             self.t = torch.full((opt.batch_size,), 1000, device=self.device, dtype=torch.long)
-        else:
-            self.netG_A = networks.define_G(opt.input_nc, opt.output_nc, opt.ngf, opt.netG, opt.norm,
-                                            not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
-            self.netG_B = networks.define_G(opt.output_nc, opt.input_nc, opt.ngf, opt.netG, opt.norm,
-                                            not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
 
         if self.isTrain:  # define discriminators
             self.netD_A = networks.define_D(opt.output_nc, opt.ndf, opt.netD,
@@ -109,13 +115,13 @@ class CycleGANModel(BaseModel):
             self.criterionCycle = torch.nn.L1Loss()
             self.criterionIdt = torch.nn.L1Loss()
             # initialize optimizers; schedulers will be automatically created by function <BaseModel.setup>.
-            # if self.use_diffusion:
-            #     self.optimizer_N = torch.optim.Adam(self.denoise_model.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
-            #     self.optimizers.append(self.optimizer_N)
-            self.optimizer_G = torch.optim.Adam(itertools.chain(self.netG_A.parameters(), self.netG_B.parameters(), self.denoise_model.parameters()), lr=opt.lr, betas=(opt.beta1, 0.999))
+            self.optimizer_G = torch.optim.Adam(itertools.chain(self.netG_A.parameters(), self.netG_B.parameters()), lr=opt.lr, betas=(opt.beta1, 0.999))
             self.optimizer_D = torch.optim.Adam(itertools.chain(self.netD_A.parameters(), self.netD_B.parameters()), lr=opt.lr, betas=(opt.beta1, 0.999))
             self.optimizers.append(self.optimizer_G)
             self.optimizers.append(self.optimizer_D)
+            if self.use_diffusion:
+                self.optimizer_N = torch.optim.Adam(itertools.chain(self.netDenoise.parameters(), self.netG_D.parameters()), lr=opt.lr, betas=(opt.beta1, 0.999))
+                self.optimizers.append(self.optimizer_N)
 
     def set_input(self, input):
         """Unpack input data from the dataloader and perform necessary pre-processing steps.
@@ -136,12 +142,14 @@ class CycleGANModel(BaseModel):
             self.noise = torch.randn_like(self.real_A)
             self.real_A_noisy = self.diffusion.q_sample(self.real_A, self.t, noise=self.noise)
             self.fake_B = self.netG_A(self.real_A_noisy)  # G_A(A)
-            self.fake_B_latent = self.denoise_model(self.fake_B, self.t)
-            self.rec_A = self.netG_B(torch.cat([self.fake_B, self.fake_B_latent], dim=1))   # G_B(G_A(A))
-            self.real_B_latent = self.denoise_model(self.real_B, self.t)
-            self.fake_A = self.netG_B(torch.cat([self.real_B, self.real_B_latent], dim=1))  # G_B(B)
+            self.fake_B_noisy = self.netG_B(self.fake_B)
+            self.fake_B_latent = self.netDenoise(self.fake_B_noisy, self.t)
+            self.rec_A = self.netG_D(torch.cat([self.fake_B_noisy, self.fake_B_latent], dim=1))   # G_B(G_A(A))
+            self.real_B_noisy = self.netG_B(self.real_B)
+            self.real_B_latent = self.netDenoise(self.real_B_noisy, self.t)
+            self.fake_A = self.netG_D(torch.cat([self.real_B_noisy, self.real_B_latent], dim=1))  # G_B(B)
             self.fake_A_noisy = self.diffusion.q_sample(self.fake_A, self.t, noise=self.real_B_latent)
-            self.rec_B = self.netG_A(self.fake_A)   # G_A(G_B(B))
+            self.rec_B = self.netG_A(self.fake_A_noisy)   # G_A(G_B(B))
         else:
             self.fake_B = self.netG_A(self.real_A)  # G_A(A)
             self.rec_A = self.netG_B(self.fake_B)   # G_B(G_A(A))
