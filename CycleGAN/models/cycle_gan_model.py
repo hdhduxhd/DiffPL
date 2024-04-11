@@ -80,9 +80,9 @@ class CycleGANModel(BaseModel):
             self.model_names = ['G_A', 'G_B', 'D_A', 'D_B']
         else:  # during test time, only load Gs
             self.model_names = ['G_A', 'G_B']
-        if self.use_diffusion:
-            self.model_names.append('Denoise')
-            self.model_names.append('G_D')
+        # if self.use_diffusion:
+        #     self.model_names.append('Denoise')
+        #     self.model_names.append('G_D')
 
         # define networks (both Generators and discriminators)
         # The naming is different from those used in the paper.
