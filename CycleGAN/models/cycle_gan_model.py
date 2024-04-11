@@ -191,7 +191,7 @@ class CycleGANModel(BaseModel):
 
     def backward_D_D(self):
         """Calculate GAN loss for discriminator D_B"""
-        fake_A_denoise = self.fake_A_denoise_pool.query(self.fake_A_denosie)
+        fake_A_denoise = self.fake_A_denoise_pool.query(self.fake_A_denoise)
         self.loss_D_D = self.backward_D_basic(self.netD_D, self.real_A_origin, fake_A_denoise)
 
     def backward_G(self):
