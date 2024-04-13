@@ -11,7 +11,7 @@ from ddpm.diffusion import GaussianDiffusion
 from ddpm.unet import UNet
 
 
-class CycleGANModel(BaseModel):
+class DiffCycleGANModel(BaseModel):
     """
     This class implements the CycleGAN model, for learning image-to-image translation without paired data.
 
