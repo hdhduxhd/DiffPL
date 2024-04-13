@@ -46,6 +46,7 @@ class CycleGANModel(BaseModel):
         if is_train:
             parser.add_argument('--lambda_A', type=float, default=10.0, help='weight for cycle loss (A -> B -> A)')
             parser.add_argument('--lambda_B', type=float, default=10.0, help='weight for cycle loss (B -> A -> B)')
+            parser.add_argument('--lambda_N', type=float, default=20.0, help='weight for diff loss (denoise)')
             parser.add_argument('--lambda_identity', type=float, default=0.5, help='use identity mapping. Setting lambda_identity other than 0 has an effect of scaling the weight of the identity mapping loss. For example, if the weight of the identity loss should be 10 times smaller than the weight of the reconstruction loss, please set lambda_identity = 0.1')
 
         return parser
@@ -58,7 +59,7 @@ class CycleGANModel(BaseModel):
         """
         BaseModel.__init__(self, opt)
         # specify the training losses you want to print out. The training/test scripts will call <BaseModel.get_current_losses>
-        self.loss_names = ['D_A', 'G_A', 'cycle_A', 'idt_A', 'D_B', 'G_B', 'cycle_B', 'idt_B', 'N']
+        self.loss_names = ['D_A', 'G_A', 'cycle_A', 'idt_A', 'D_B', 'G_B', 'cycle_B', 'idt_B', 'diff']
         # specify the images you want to save/display. The training/test scripts will call <BaseModel.get_current_visuals>
         visual_names_A = ['real_A', 'fake_B', 'rec_A', 'real_A_noise', 'fake_B_noise']
         visual_names_B = ['real_B', 'fake_A', 'rec_B', 'real_B_noise', 'fake_A_noise']
@@ -96,20 +97,15 @@ class CycleGANModel(BaseModel):
                 assert(opt.input_nc == opt.output_nc)
             self.fake_A_pool = ImagePool(opt.pool_size)  # create image buffer to store previously generated images
             self.fake_B_pool = ImagePool(opt.pool_size)  # create image buffer to store previously generated images
-            if self.use_diffusion:
-                self.fake_A_denoise_pool = ImagePool(opt.pool_size)  # create image buffer to store previously generated images
             # define loss functions
             self.criterionGAN = networks.GANLoss(opt.gan_mode).to(self.device)  # define GAN loss.
             self.criterionCycle = torch.nn.L1Loss()
             self.criterionIdt = torch.nn.L1Loss()
             # initialize optimizers; schedulers will be automatically created by function <BaseModel.setup>.
-            self.optimizer_G = torch.optim.Adam(itertools.chain(self.netG_A.parameters(), self.netG_B.parameters()), lr=opt.lr, betas=(opt.beta1, 0.999))
-            self.optimizer_D = torch.optim.Adam(itertools.chain(self.netD_A.parameters(), self.netD_B.parameters(), self.netD_D.parameters()), lr=opt.lr, betas=(opt.beta1, 0.999))
+            self.optimizer_G = torch.optim.Adam(itertools.chain(self.netG_A.parameters(), self.netG_B.parameters(), self.netDenoise_A.parameters(), self.netDenoise_B.parameters()), lr=opt.lr, betas=(opt.beta1, 0.999))
+            self.optimizer_D = torch.optim.Adam(itertools.chain(self.netD_A.parameters(), self.netD_B.parameters()), lr=opt.lr, betas=(opt.beta1, 0.999))
             self.optimizers.append(self.optimizer_G)
             self.optimizers.append(self.optimizer_D)
-            if self.use_diffusion:
-                self.optimizer_N = torch.optim.Adam(itertools.chain(self.netDenoise.parameters(), self.netG_D.parameters()), lr=opt.lr, betas=(opt.beta1, 0.999))
-                self.optimizers.append(self.optimizer_N)
 
     def set_input(self, input):
         """Unpack input data from the dataloader and perform necessary pre-processing steps.
@@ -120,26 +116,28 @@ class CycleGANModel(BaseModel):
         The option 'direction' can be used to swap domain A and domain B.
         """
         AtoB = self.opt.direction == 'AtoB'
-        if self.use_diffusion:
-            self.real_A_origin = input['A' if AtoB else 'B'].to(self.device)
-            self.noise = torch.randn_like(self.real_A_origin)
-            self.real_A = self.diffusion.q_sample(self.real_A_origin, self.t, noise=self.noise)
-        else:
-            self.real_A = input['A' if AtoB else 'B'].to(self.device)
+        self.real_A = input['A' if AtoB else 'B'].to(self.device)
         self.real_B = input['B' if AtoB else 'A'].to(self.device)
         # self.image_paths = input['A_paths' if AtoB else 'B_paths']
     
     def forward(self):
         """Run forward pass; called by both functions <optimize_parameters> and <test>."""
-        self.fake_B = self.netG_A(self.real_A)  # G_A(A)
-        self.rec_A = self.netG_B(self.fake_B)   # G_B(G_A(A))
-        self.fake_A = self.netG_B(self.real_B)  # G_B(B)
-        self.rec_B = self.netG_A(self.fake_A)   # G_A(G_B(B))
-        if self.use_diffusion:
-            self.rec_A_latent = self.netDenoise(self.rec_A, self.t)
-            self.rec_A_denoise = self.netG_D(torch.cat([self.rec_A, self.rec_A_latent], dim=1))   # G_B(G_A(A))
-            self.fake_A_latent = self.netDenoise(self.fake_A, self.t)
-            self.fake_A_denoise = self.netG_D(torch.cat([self.fake_A, self.fake_A_latent], dim=1))  # G_B(B)
+        self.noise_real_A = torch.randn_like(self.real_A)
+        self.real_A_noise = self.diffusion.q_sample(self.real_A, self.t, noise=self.noise_real_A)
+        self.real_A_latent = self.netDenoise_A(self.real_A_noise, self.t)
+        self.fake_B = self.netG_A(torch.cat([self.real_A_noise, self.real_A_latent], dim=1))  # G_A(A)
+        self.noise_fake_B = torch.randn_like(self.fake_B)
+        self.fake_B_noise = self.diffusion.q_sample(self.fake_B, self.t, noise=self.noise_fake_B)
+        self.fake_B_latent = self.netDenoise_B(self.fake_B_noise, self.t)
+        self.rec_A = self.netG_B(torch.cat([self.fake_B_noise, self.fake_B_latent], dim=1))   # G_B(G_A(A))
+        self.noise_real_B = torch.randn_like(self.real_B)
+        self.real_B_noise = self.diffusion.q_sample(self.real_B, self.t, noise=self.noise_real_B)
+        self.real_B_latent = self.netDenoise_B(self.real_B_noise, self.t)
+        self.fake_A = self.netG_B(torch.cat([self.real_B_noise, self.real_B_latent], dim=1))  # G_B(B)
+        self.noise_fake_A = torch.randn_like(self.fake_A)
+        self.fake_A_noise = self.diffusion.q_sample(self.fake_A, self.t, noise=self.noise_fake_A)
+        self.fake_A_latent = self.netDenoise_A(self.fake_A_noise, self.t)
+        self.rec_B = self.netG_A(torch.cat([self.fake_A_noise, self.fake_A_latent], dim=1))   # G_A(G_B(B))
 
     def backward_D_basic(self, netD, real, fake):
         """Calculate GAN loss for the discriminator
@@ -173,11 +171,6 @@ class CycleGANModel(BaseModel):
         fake_A = self.fake_A_pool.query(self.fake_A)
         self.loss_D_B = self.backward_D_basic(self.netD_B, self.real_A, fake_A)
 
-    def backward_D_D(self):
-        """Calculate GAN loss for discriminator D_B"""
-        fake_A_denoise = self.fake_A_denoise_pool.query(self.fake_A_denoise)
-        self.loss_D_D = self.backward_D_basic(self.netD_D, self.real_A_origin, fake_A_denoise)
-
     def backward_G(self):
         """Calculate the loss for generators G_A and G_B"""
         lambda_idt = self.opt.lambda_identity
@@ -203,28 +196,20 @@ class CycleGANModel(BaseModel):
         self.loss_cycle_A = self.criterionCycle(self.rec_A, self.real_A) * lambda_A
         # Backward cycle loss || G_A(G_B(B)) - B||
         self.loss_cycle_B = self.criterionCycle(self.rec_B, self.real_B) * lambda_B
+        #diff loss
+        self.loss_diff_real_A = F.mse_loss(self.real_A_latent, self.real_A_noise) 
+        self.loss_diff_fake_B = F.mse_loss(self.fake_B_latent, self.fake_B_noise) 
+        self.loss_diff_real_B = F.mse_loss(self.real_B_latent, self.real_B_noise) 
+        self.loss_diff_fake_A = F.mse_loss(self.fake_A_latent, self.fake_A_noise) 
+        self.loss_diff = (self.loss_diff_real_A + self.loss_diff_fake_B + self.loss_diff_real_B + self.loss_diff_fake_A) * lambda_N
         # combined loss and calculate gradients
-        self.loss_G = self.loss_G_A + self.loss_G_B + self.loss_cycle_A + self.loss_cycle_B + self.loss_idt_A + self.loss_idt_B
+        self.loss_G = self.loss_G_A + self.loss_G_B + self.loss_cycle_A + self.loss_cycle_B + self.loss_idt_A + self.loss_idt_B + self.loss_diff
         self.loss_G.backward()
-
-    def backward_N(self):
-        self.loss_D = self.criterionGAN(self.netD_D(self.fake_A_denoise), True)
-        self.loss_diff = F.mse_loss(self.rec_A_latent, self.noise) * 5
-        self.loss_recon = self.criterionCycle(self.real_A_origin, self.rec_A_denoise)
-        self.loss_N = self.loss_D + self.loss_diff + self.loss_recon
-        self.loss_N.backward(retain_graph=True)
         
     def optimize_parameters(self):
         """Calculate losses, gradients, and update network weights; called in every training iteration"""
         # forward
         self.forward()      # compute fake images and reconstruction images.
-        if self.use_diffusion:
-            # N
-            self.set_requires_grad([self.netG_A, self.netG_B], False)  # Ds require no gradients when optimizing Gs
-            self.optimizer_N.zero_grad()
-            self.backward_N()
-            self.optimizer_N.step()
-            self.set_requires_grad([self.netG_A, self.netG_B], True)  # Ds require no gradients when optimizing Gs
         # G_A and G_B
         self.set_requires_grad([self.netD_A, self.netD_B], False)  # Ds require no gradients when optimizing Gs
         self.optimizer_G.zero_grad()  # set G_A and G_B's gradients to zero
@@ -235,5 +220,4 @@ class CycleGANModel(BaseModel):
         self.optimizer_D.zero_grad()   # set D_A and D_B's gradients to zero
         self.backward_D_A()      # calculate gradients for D_A
         self.backward_D_B()      # calculate graidents for D_B
-        self.backward_D_D()      # calculate graidents for D_D
         self.optimizer_D.step()  # update D_A and D_B's weights
