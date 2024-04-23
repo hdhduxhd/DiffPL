@@ -23,6 +23,7 @@ import numpy as np
 import torch
 from torchvision import transforms
 from torch.utils.data import DataLoader
+import torch.nn.functional as F
 import sys
 sys.path[0]='/kaggle/working/DiffPL'
 from CycleGAN.options.test_options import TestOptions
