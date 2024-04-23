@@ -150,6 +150,7 @@ class DiffCycleGANModel(BaseModel):
             output1 = self.netG_B(torch.cat([input_noise, input_latent], dim=1))  # denoise one step
         else:
             output1 = self.diffusion.sample(self.netDenoise_B, img=input_noise, t=t)[-1] #denoise step by step
+            output1 = torch.from_numpy(output1).to(self.device)
         
         noise_output1 = torch.randn_like(output1)
         output1_noise = self.diffusion.q_sample(output1, torch.full((input.shape[0],), t, device=self.device, dtype=torch.long), noise=noise_output1)
@@ -158,6 +159,7 @@ class DiffCycleGANModel(BaseModel):
             output2 = self.netG_A(torch.cat([output1_noise, output1_latent], dim=1))
         else:
             output2 = self.diffusion.sample(self.netDenoise_A, img=output1_noise, t=t)[-1]
+            output2 = torch.from_numpy(output2).to(self.device)
         
         return output1, output2  #refine, recon
 
