@@ -95,7 +95,7 @@ if __name__ == '__main__':
         target_pl[target_pl > 0.5] = 1
         target_pl[target_pl <= 0.5] = 0
         target_prob_pl = target_prob_pl.to(device)
-        _, target_new_pl = model.get_output_B(target_prob_pl, type1='one', type2='one')
+        target_new_pl, _ = model.get_output_B(target_prob_pl, type1='one', type2='one')
         target_new_pl[target_new_pl > 0.5] = 1
         target_new_pl[target_new_pl <= 0.5] = 0
       
@@ -109,7 +109,7 @@ if __name__ == '__main__':
 
     dice_before_cup /= len(domain_loaderT)
     dice_before_disc /= len(domain_loaderT)
-    dice_after_cup /= len(domain_loaderT)    
+    dice_after_cup /= len(domain_loaderT)
     dice_after_disc /= len(domain_loaderT)
 
     print('%.4f,%.4f'%(dice_before_cup,dice_after_cup))
