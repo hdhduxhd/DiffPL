@@ -64,9 +64,9 @@ class DiffCycleGANModel(BaseModel):
         # specify the images you want to save/display. The training/test scripts will call <BaseModel.get_current_visuals>
         visual_names_A = ['real_A', 'fake_B', 'rec_A', 'real_A_noise', 'fake_B_noise']
         visual_names_B = ['real_B', 'fake_A', 'rec_B', 'real_B_noise', 'fake_A_noise']
-        if self.isTrain and self.opt.lambda_identity > 0.0:  # if identity loss is used, we also visualize idt_B=G_A(B) ad idt_A=G_A(B)
-            visual_names_A.append('idt_B')
-            visual_names_B.append('idt_A')
+        # if self.isTrain and self.opt.lambda_identity > 0.0:  # if identity loss is used, we also visualize idt_B=G_A(B) ad idt_A=G_A(B)
+        #     visual_names_A.append('idt_B')
+        #     visual_names_B.append('idt_A')
 
         self.visual_names = visual_names_A + visual_names_B  # combine visualizations for A and B
         # specify the models you want to save to the disk. The training/test scripts will call <BaseModel.save_networks> and <BaseModel.load_networks>.
@@ -162,6 +162,39 @@ class DiffCycleGANModel(BaseModel):
             output2 = torch.from_numpy(output2).to(self.device)
         
         return output1, output2  #refine, recon
+
+    def compute_visuals(self):
+        self.visual_names.extend(['fake_B_sample', 'rec_A_sample', 'fake_A_sample', 'rec_B_sample'])
+        t = random.randint(200, 500)
+        batch_size = self.real_A.shape[0]
+        self.noise_real_A = torch.randn_like(self.real_A)
+        self.real_A_noise = self.diffusion.q_sample(self.real_A, torch.full((batch_size,), t, device=self.device, dtype=torch.long), noise=self.noise_real_A)
+        self.real_A_latent = self.netDenoise_A(self.real_A_noise, torch.full((batch_size,), t, device=self.device, dtype=torch.long))
+        self.fake_B = self.netG_A(torch.cat([self.real_A_noise, self.real_A_latent], dim=1))  # G_A(A)
+        self.fake_B_sample = self.diffusion.sample(self.netDenoise_A, img=self.real_A_noise, t=t)[-1] #denoise step by step
+        self.fake_B_sample = torch.from_numpy(self.fake_B_sample).to(self.device)
+        
+        self.noise_fake_B = torch.randn_like(self.fake_B)
+        self.fake_B_noise = self.diffusion.q_sample(self.fake_B, torch.full((batch_size,), t, device=self.device, dtype=torch.long), noise=self.noise_fake_B)
+        self.fake_B_latent = self.netDenoise_B(self.fake_B_noise, torch.full((batch_size,), t, device=self.device, dtype=torch.long))
+        self.rec_A = self.netG_B(torch.cat([self.fake_B_noise, self.fake_B_latent], dim=1))   # G_B(G_A(A))
+        self.rec_A_sample = self.diffusion.sample(self.netDenoise_B, img=self.fake_B_noise, t=t)[-1] #denoise step by step
+        self.rec_A_sample = torch.from_numpy(self.rec_A_sample).to(self.device)
+        
+        self.noise_real_B = torch.randn_like(self.real_B)
+        self.real_B_noise = self.diffusion.q_sample(self.real_B, torch.full((batch_size,), t, device=self.device, dtype=torch.long), noise=self.noise_real_B)
+        self.real_B_latent = self.netDenoise_B(self.real_B_noise, torch.full((batch_size,), t, device=self.device, dtype=torch.long))
+        self.fake_A = self.netG_B(torch.cat([self.real_B_noise, self.real_B_latent], dim=1))  # G_B(B)
+        self.fake_A_sample = self.diffusion.sample(self.netDenoise_B, img=self.real_B_noise, t=t)[-1] #denoise step by step
+        self.fake_A_sample = torch.from_numpy(self.fake_A_sample).to(self.device)
+        
+        self.noise_fake_A = torch.randn_like(self.fake_A)
+        self.fake_A_noise = self.diffusion.q_sample(self.fake_A, torch.full((batch_size,), t, device=self.device, dtype=torch.long), noise=self.noise_fake_A)
+        self.fake_A_latent = self.netDenoise_A(self.fake_A_noise, torch.full((batch_size,), t, device=self.device, dtype=torch.long))
+        self.rec_B = self.netG_A(torch.cat([self.fake_A_noise, self.fake_A_latent], dim=1))   # G_A(G_B(B))
+        self.rec_B_sample = self.diffusion.sample(self.netDenoise_A, img=self.fake_A_noise, t=t)[-1] #denoise step by step
+        self.rec_B_sample = torch.from_numpy(self.rec_B_sample).to(self.device)
+        
 
     def backward_D_basic(self, netD, real, fake):
         """Calculate GAN loss for the discriminator
