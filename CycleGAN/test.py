@@ -38,7 +38,7 @@ if __name__ == '__main__':
     # 1. dataset
     composed_transforms_tr = transforms.Compose([
         #tr.Resize(512),###
-        tr.RandomScaleCrop(512),
+        tr.RandomScaleCrop(256),
         tr.RandomRotate(),
         tr.RandomFlip(),
         tr.elastic_transform(),
@@ -51,7 +51,7 @@ if __name__ == '__main__':
 
     composed_transforms_ts = transforms.Compose([
         # tr.RandomCrop(512),
-        tr.Resize(512),
+        tr.Resize(256),
         tr.Normalize_tf(),
         tr.ToTensor()
     ])
@@ -87,12 +87,14 @@ if __name__ == '__main__':
         target_image, target_label, target_img_name = sample['image'], sample['map'], sample['img_name']
         target_pl = torch.stack([torch.from_numpy(refine_pseudo_label_dic.get(i)) for i in target_img_name])
         target_prob_pl = torch.stack([torch.from_numpy(refine_prob_dic.get(i)) for i in target_img_name])
+        target_pl = F.interpolate(target_pl, size=(256, 256), mode='bilinear', align_corners=False)
+        target_prob_pl = F.interpolate(target_prob_pl, size=(256, 256), mode='bilinear', align_corners=False)
         target_label = target_label.to(device)
         target_pl = target_pl.float().to(device)
         target_prob_pl = target_prob_pl.to(device)
-        target_new_pl = model.netG_A(model.netG_B(target_prob_pl))
-        target_new_pl[target_new_pl > 0.75] = 1
-        target_new_pl[target_new_pl <= 0.75] = 0
+        _, target_new_pl = model.get_output_B(target_prob_pl, type1='one', type2='one')
+        target_new_pl[target_new_pl > 0.5] = 1
+        target_new_pl[target_new_pl <= 0.5] = 0
       
         dice_prob_cup, dice_prob_disc = dice_coeff_2label(target_pl, target_label)
         dice_before_cup += dice_prob_cup
