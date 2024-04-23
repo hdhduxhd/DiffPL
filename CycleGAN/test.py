@@ -95,7 +95,7 @@ if __name__ == '__main__':
         target_pl[target_pl > 0.5] = 1
         target_pl[target_pl <= 0.5] = 0
         target_prob_pl = target_prob_pl.to(device)
-        target_new_pl, _ = model.get_output_B(target_prob_pl, type1='one', type2='one')
+        target_new_pl, _ = model.get_output_B(target_prob_pl, type1='multiple', type2='one')
         target_new_pl[target_new_pl > 0.5] = 1
         target_new_pl[target_new_pl <= 0.5] = 0
       
