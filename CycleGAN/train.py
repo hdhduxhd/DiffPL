@@ -30,6 +30,7 @@ from CycleGAN.options.train_options import TrainOptions
 # from data import create_dataset
 from CycleGAN.models import create_model
 from CycleGAN.util.visualizer import Visualizer
+from cpr.utils.metrics import *
 
 from dataloaders import fundus_dataloader as DL
 from dataloaders import custom_transforms as tr
@@ -66,10 +67,10 @@ if __name__ == '__main__':
     domain_iterS = iter(domain_loaderS)
 
     domain_T = DL.FundusSegmentation(base_dir=opt.data_dir, dataset=opt.datasetT, split='train/ROIs', transform=composed_transforms_ts)
-    domain_loaderT = DataLoader(domain_T, batch_size=opt.batch_size, shuffle=False, num_workers=2, pin_memory=True)
+    domain_loaderT = DataLoader(domain_T, batch_size=opt.batch_size, shuffle=True, num_workers=2, pin_memory=True)
     domain_iterT = iter(domain_loaderT)
 
-    domain_val = DL.FundusSegmentation(base_dir=opt.data_dir, dataset=opt.datasetS, split='test/ROIs', transform=composed_transforms_ts)
+    domain_val = DL.FundusSegmentation(base_dir=opt.data_dir, dataset=opt.datasetT, split='test/ROIs', transform=composed_transforms_ts)
     domain_loader_val = DataLoader(domain_val, batch_size=opt.batch_size, shuffle=False, num_workers=2, pin_memory=True)
 
     npfilename = '/kaggle/input/fundus-pseudo/pseudolabel_D2.npz'
@@ -139,8 +140,26 @@ if __name__ == '__main__':
 
             iter_data_time = time.time()
         if epoch % opt.save_epoch_freq == 0:              # cache our model every <save_epoch_freq> epochs
-            print('saving the model at the end of epoch %d, iters %d' % (epoch, total_iters))
-            model.save_networks('latest')
-            model.save_networks(epoch)
+            dice_cup, dice_disc = 0, 0
+            max_dice = 0
+            for sample in domain_loaderT:
+                target_image, target_label, target_img_name = sample['image'], sample['map'], sample['img_name']
+                target_prob_pl = torch.stack([torch.from_numpy(refine_prob_dic.get(i)) for i in target_img_name])
+                target_label = target_label.to(device)
+                target_prob_pl = target_prob_pl.to(device)
+                target_new_pl = model.get_output_B(target_prob_pl, type1='one', type2='one')
+                target_new_pl[target_new_pl > 0.5] = 1
+                target_new_pl[target_new_pl <= 0.5] = 0
+                dice_prob_cup, dice_prob_disc = dice_coeff_2label(target_new_pl, target_label)
+                dice_cup += dice_prob_cup
+                dice_disc += dice_prob_disc
+            dice_cup /= len(domain_loaderT)    
+            dice_disc /= len(domain_loaderT)
+            if (dice_cup + dice_disc) / 2 > max_dice:
+                max_dice = (dice_cup + dice_disc) / 2
+                print('dice_cup: %.4f, dice_disc: %.4f' % (dice_cup, dice_disc))
+                print('saving the model at the end of epoch %d, iters %d' % (epoch, total_iters))
+                model.save_networks('latest')
+                model.save_networks(epoch)
 
         print('End of epoch %d / %d \t Time Taken: %d sec' % (epoch, opt.n_epochs + opt.n_epochs_decay, time.time() - epoch_start_time))
