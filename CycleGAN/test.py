@@ -88,10 +88,12 @@ if __name__ == '__main__':
         target_image, target_label, target_img_name = sample['image'], sample['map'], sample['img_name']
         target_pl = torch.stack([torch.from_numpy(refine_pseudo_label_dic.get(i)) for i in target_img_name])
         target_prob_pl = torch.stack([torch.from_numpy(refine_prob_dic.get(i)) for i in target_img_name])
-        target_pl = F.interpolate(target_pl, size=(256, 256), mode='bilinear', align_corners=False)
+        target_pl = F.interpolate(target_pl.float(), size=(256, 256), mode='bilinear', align_corners=False)
         target_prob_pl = F.interpolate(target_prob_pl, size=(256, 256), mode='bilinear', align_corners=False)
         target_label = target_label.to(device)
-        target_pl = target_pl.float().to(device)
+        target_pl = target_pl.to(device)
+        target_pl[target_pl > 0.5] = 1
+        target_pl[target_pl <= 0.5] = 0
         target_prob_pl = target_prob_pl.to(device)
         _, target_new_pl = model.get_output_B(target_prob_pl, type1='one', type2='one')
         target_new_pl[target_new_pl > 0.5] = 1
