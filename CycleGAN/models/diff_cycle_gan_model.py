@@ -255,9 +255,9 @@ class DiffCycleGANModel(BaseModel):
         # GAN loss D_A(G_A(A))
         self.loss_G_A = self.criterionGAN(self.netD_A(self.fake_B), True)
         # GAN loss D_B(G_B(B))
-        self.loss_G_B = self.criterionGAN(self.netD_B(self.fake_A), True)
+        self.loss_G_B = self.criterionGAN(self.netD_B(self.fake_A), True) * lambda_A
         # Forward cycle loss || G_B(G_A(A)) - A||
-        self.loss_cycle_A = self.criterionCycle(self.rec_A, self.real_A) * lambda_A
+        self.loss_cycle_A = self.criterionCycle(self.rec_A, self.real_A)
         # Backward cycle loss || G_A(G_B(B)) - B||
         self.loss_cycle_B = self.criterionCycle(self.rec_B, self.real_B) * lambda_B
         #diff loss
