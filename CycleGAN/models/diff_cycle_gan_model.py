@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import random
 import itertools
 import sys
 sys.path[0]='/kaggle/working/DiffPL'
@@ -84,7 +85,6 @@ class DiffCycleGANModel(BaseModel):
         self.diffusion = GaussianDiffusion()
         self.netDenoise_A = UNet(in_channel=opt.input_nc, out_channel=opt.input_nc).to(self.device)
         self.netDenoise_B = UNet(in_channel=opt.output_nc, out_channel=opt.output_nc).to(self.device)
-        self.t = torch.full((opt.batch_size,), 1000, device=self.device, dtype=torch.long)
 
         if self.isTrain:  # define discriminators
             self.netD_A = networks.define_D(opt.output_nc, opt.ndf, opt.netD,
@@ -121,6 +121,8 @@ class DiffCycleGANModel(BaseModel):
         # self.image_paths = input['A_paths' if AtoB else 'B_paths']
     
     def forward(self):
+        batch_size = self.real_A.shape[0]
+        self.t = torch.randint(0, 2000, (batch_size,), device=self.device).long()
         """Run forward pass; called by both functions <optimize_parameters> and <test>."""
         self.noise_real_A = torch.randn_like(self.real_A)
         self.real_A_noise = self.diffusion.q_sample(self.real_A, self.t, noise=self.noise_real_A)
@@ -138,6 +140,27 @@ class DiffCycleGANModel(BaseModel):
         self.fake_A_noise = self.diffusion.q_sample(self.fake_A, self.t, noise=self.noise_fake_A)
         self.fake_A_latent = self.netDenoise_A(self.fake_A_noise, self.t)
         self.rec_B = self.netG_A(torch.cat([self.fake_A_noise, self.fake_A_latent], dim=1))   # G_A(G_B(B))
+
+    def get_output_B(self, input, type1='one', type2='one'):
+        t = random.randint(200, 500)
+        t = torch.full((input.shape[0],), t, device=self.device, dtype=torch.long)
+        noise_input = torch.randn_like(input)
+        input_noise = self.diffusion.q_sample(input, t, noise=noise_input)
+        input_latent = self.netDenoise_B(input_noise, t)
+        if type1 == 'one':
+            output1 = self.netG_B(torch.cat([input_noise, input_latent], dim=1))  # denoise one step
+        else:
+            output1 = self.diffusion.sample(self.netDenoise_B, img=input_noise, t=t)[-1] #denoise step by step
+        
+        noise_output1 = torch.randn_like(output1)
+        output1_noise = self.diffusion.q_sample(output1, t, noise=noise_output1)
+        output1_latent = self.netDenoise_A(output1_noise, t)
+        if type2 == 'one':
+            output2 = self.netG_A(torch.cat([output1_noise, output1_latent], dim=1))
+        else:
+            output2 = self.diffusion.sample(self.netDenoise_A, img=output1_noise, t=t)[-1]
+        
+        return output1, output2  #refine, recon
 
     def backward_D_basic(self, netD, real, fake):
         """Calculate GAN loss for the discriminator
