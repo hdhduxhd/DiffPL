@@ -113,6 +113,11 @@ if __name__ == '__main__':
         dice_after_disc += dice_prob_disc
         visualizer.plot_current_metrics({"after_dice_cup":dice_prob_cup,"after_dice_disc":dice_prob_disc})
 
+        if dice_before_cup < dice_after_cup:
+            print('image:{i}, dice_before_cup{dice_before_cup}<dice_after_cup{dice_after_cup}')
+        if dice_before_disc < dice_after_disc:
+            print('image:{i}, dice_before_disc{dice_before_disc}<dice_after_disc{dice_after_disc}')
+
         visualizer.display_current_results(temp, i, 'True')
         
     dice_before_cup /= len(domain_loaderT)
