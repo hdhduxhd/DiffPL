@@ -86,7 +86,7 @@ if __name__ == '__main__':
     dice_before_disc = 0
     dice_after_disc = 0
 
-    for sample in domain_loaderT:
+    for i, sample in enumerate(domain_loaderT):
         target_image, target_label, target_img_name = sample['image'], sample['map'], sample['img_name']
         target_pl = torch.stack([torch.from_numpy(refine_pseudo_label_dic.get(i)) for i in target_img_name])
         target_prob_pl = torch.stack([torch.from_numpy(refine_prob_dic.get(i)) for i in target_img_name])
@@ -113,7 +113,7 @@ if __name__ == '__main__':
         dice_after_disc += dice_prob_disc
         visualizer.plot_current_metrics({"after_dice_cup":dice_prob_cup,"after_dice_disc":dice_prob_disc})
 
-        visualizer.display_current_results(temp, epoch, save_result)
+        visualizer.display_current_results(temp, i, 'True')
         
     dice_before_cup /= len(domain_loaderT)
     dice_before_disc /= len(domain_loaderT)
