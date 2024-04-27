@@ -256,3 +256,13 @@ class Visualizer():
         print(message)  # print the message
         with open(self.log_name, "a") as log_file:
             log_file.write('%s\n' % message)  # save the message
+
+    def plot_current_metrics(self, metrics):
+        """display the current losses on visdom display: dictionary of error labels and values
+
+        Parameters:
+            epoch (int)           -- current epoch
+            counter_ratio (float) -- progress (percentage) in the current epoch, between 0 to 1
+            losses (OrderedDict)  -- training losses stored in the format of (name, float) pairs
+        if self.use_wandb:
+            self.wandb_run.log(metrics)
