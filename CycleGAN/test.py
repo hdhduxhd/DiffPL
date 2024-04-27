@@ -28,6 +28,7 @@ import sys
 sys.path[0]='/kaggle/working/DiffPL'
 from CycleGAN.options.test_options import TestOptions
 from CycleGAN.models import create_model
+from CycleGAN.util.visualizer import Visualizer
 from cpr.utils.metrics import *
 
 from dataloaders import fundus_dataloader as DL
@@ -78,6 +79,7 @@ if __name__ == '__main__':
     model.setup(opt)               # regular setup: load and print networks; create schedulers
     model.eval()
     device = torch.device('cuda:{}'.format(opt.gpu_ids[0])) if opt.gpu_ids else torch.device('cpu')  # get device name: CPU or GPU
+    visualizer = Visualizer(opt)
 
     dice_before_cup = 0
     dice_after_cup = 0
@@ -88,6 +90,7 @@ if __name__ == '__main__':
         target_image, target_label, target_img_name = sample['image'], sample['map'], sample['img_name']
         target_pl = torch.stack([torch.from_numpy(refine_pseudo_label_dic.get(i)) for i in target_img_name])
         target_prob_pl = torch.stack([torch.from_numpy(refine_prob_dic.get(i)) for i in target_img_name])
+        temp = {"image":target_image+1, "ground_truth":target_label, "pseudo_label":target_pl, "prob_pseudo_label":target_prob_pl}
         target_pl = F.interpolate(target_pl.float(), size=(256, 256), mode='bilinear', align_corners=False)
         target_prob_pl = F.interpolate(target_prob_pl, size=(256, 256), mode='bilinear', align_corners=False)
         target_label = target_label.to(device)
@@ -95,18 +98,23 @@ if __name__ == '__main__':
         target_pl[target_pl > 0.5] = 1
         target_pl[target_pl <= 0.5] = 0
         target_prob_pl = target_prob_pl.to(device)
-        target_new_pl, _ = model.get_output_B(target_prob_pl, type1='multiple', type2='one')
+        _, target_new_pl = model.get_output_B(target_prob_pl, type1='one', type2='one')
+        temp["prob_new_pseudo_label"] = target_new_pl
         target_new_pl[target_new_pl > 0.5] = 1
         target_new_pl[target_new_pl <= 0.5] = 0
-      
+        
         dice_prob_cup, dice_prob_disc = dice_coeff_2label(target_pl, target_label)
         dice_before_cup += dice_prob_cup
         dice_before_disc += dice_prob_disc
+        visualizer.plot_current_metrics({"before_dice_cup":dice_prob_cup,"before_dice_disc":dice_prob_disc})
 
         dice_prob_cup, dice_prob_disc = dice_coeff_2label(target_new_pl, target_label)
         dice_after_cup += dice_prob_cup
         dice_after_disc += dice_prob_disc
+        visualizer.plot_current_metrics({"after_dice_cup":dice_prob_cup,"after_dice_disc":dice_prob_disc})
 
+        visualizer.display_current_results(temp, epoch, save_result)
+        
     dice_before_cup /= len(domain_loaderT)
     dice_before_disc /= len(domain_loaderT)
     dice_after_cup /= len(domain_loaderT)
