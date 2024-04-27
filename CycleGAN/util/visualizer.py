@@ -259,10 +259,5 @@ class Visualizer():
 
     def plot_current_metrics(self, metrics):
         """display the current losses on visdom display: dictionary of error labels and values
-
-        Parameters:
-            epoch (int)           -- current epoch
-            counter_ratio (float) -- progress (percentage) in the current epoch, between 0 to 1
-            losses (OrderedDict)  -- training losses stored in the format of (name, float) pairs
         if self.use_wandb:
             self.wandb_run.log(metrics)
