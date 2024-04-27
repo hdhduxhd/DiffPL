@@ -20,6 +20,7 @@ See frequently asked questions at: https://github.com/junyanz/pytorch-CycleGAN-a
 """
 import time
 import numpy as np
+import math
 import torch
 import torch.nn.functional as F
 from torchvision import transforms
@@ -142,24 +143,34 @@ if __name__ == '__main__':
 
             iter_data_time = time.time()
         if epoch % opt.save_epoch_freq == 0:              # cache our model every <save_epoch_freq> epochs
-            dice_cup, dice_disc = 0, 0
+            refine_dice_cup, refine_dice_disc = 0, 0
+            recon_dice_cup, recon_dice_disc = 0, 0
             for sample in domain_loaderT:
                 target_image, target_label, target_img_name = sample['image'], sample['map'], sample['img_name']
                 target_prob_pl = torch.stack([torch.from_numpy(refine_prob_dic.get(i)) for i in target_img_name])
                 target_prob_pl = F.interpolate(target_prob_pl, size=(256, 256), mode='bilinear', align_corners=False)
                 target_label = target_label.to(device)
                 target_prob_pl = target_prob_pl.to(device)
-                _, target_new_pl = model.get_output_B(target_prob_pl, type1='one', type2='one')
-                target_new_pl[target_new_pl > 0.5] = 1
-                target_new_pl[target_new_pl <= 0.5] = 0
-                dice_prob_cup, dice_prob_disc = dice_coeff_2label(target_new_pl, target_label)
-                dice_cup += dice_prob_cup
-                dice_disc += dice_prob_disc
-            dice_cup /= len(domain_loaderT)    
-            dice_disc /= len(domain_loaderT)
-            if (dice_cup + dice_disc) / 2 > max_dice:
-                max_dice = (dice_cup + dice_disc) / 2
-                print('dice_cup: %.4f, dice_disc: %.4f' % (dice_cup, dice_disc))
+                refine_target_new_pl, recon_target_new_pl = model.get_output_B(target_prob_pl, type1='one', type2='one')
+                refine_target_new_pl[refine_target_new_pl > 0.5] = 1
+                refine_target_new_pl[refine_target_new_pl <= 0.5] = 0
+                recon_target_new_pl[recon_target_new_pl > 0.5] = 1
+                recon_target_new_pl[recon_target_new_pl <= 0.5] = 0
+                refine_dice_prob_cup, refine_dice_prob_disc = dice_coeff_2label(refine_target_new_pl, target_label)
+                recon_dice_prob_cup, recon_dice_prob_disc = dice_coeff_2label(recon_target_new_pl, target_label)
+                refine_dice_cup += refine_dice_prob_cup
+                refine_dice_disc += refine_dice_prob_disc
+                recon_dice_cup += recon_dice_prob_cup
+                recon_dice_disc += recon_dice_prob_disc
+            refine_dice_cup /= len(domain_loaderT)    
+            refine_dice_disc /= len(domain_loaderT)
+            recon_dice_cup /= len(domain_loaderT)    
+            recon_dice_disc /= len(domain_loaderT)
+            visualizer.plot_current_metrics({"refine_dice_cup":refine_dice_cup,"refine_dice_disc":refine_dice_disc,"recon_dice_cup":recon_dice_cup,"recon_dice_disc":recon_dice_disc})
+            if (recon_dice_cup + recon_dice_disc) / 2 > max_dice or (refine_dice_cup + refine_dice_disc) / 2 > max_dice:
+                max_dice = max((recon_dice_cup + recon_dice_disc) / 2, (refine_dice_cup + refine_dice_disc) / 2)
+                print('refine_dice_cup: %.4f, refine_dice_disc: %.4f' % (refine_dice_cup, refine_dice_disc))
+                print('recon_dice_cup: %.4f, recon_dice_disc: %.4f' % (recon_dice_cup, recon_dice_disc))
                 print('saving the model at the end of epoch %d, iters %d' % (epoch, total_iters))
                 model.save_networks('latest')
                 model.save_networks(epoch)
