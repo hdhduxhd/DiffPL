@@ -116,10 +116,10 @@ if __name__ == '__main__':
         visualizer.plot_current_metrics({"after_dice_cup":dice_prob_cup,"after_dice_disc":dice_prob_disc})
 
         if dice_before_cup < dice_after_cup:
-            print('image:{i}, dice_before_cup{dice_before_cup}<dice_after_cup{dice_after_cup}')
+            print('image:{%d}, dice_before_cup{%.4f}<dice_after_cup{%.4f}'.format(i,dice_before_cup,dice_after_cup))
             count += 1
         if dice_before_disc < dice_after_disc:
-            print('image:{i}, dice_before_disc{dice_before_disc}<dice_after_disc{dice_after_disc}')
+            print('image:{%d}, dice_before_disc{%.4f}<dice_after_disc{%.4f}'.format(i,dice_before_disc,dice_after_disc))
             count += 1
 
         visualizer.display_current_results(temp, i, 'True')
