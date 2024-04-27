@@ -258,6 +258,5 @@ class Visualizer():
             log_file.write('%s\n' % message)  # save the message
 
     def plot_current_metrics(self, metrics):
-        """display the current losses on visdom display: dictionary of error labels and values
         if self.use_wandb:
             self.wandb_run.log(metrics)
