@@ -86,6 +86,8 @@ if __name__ == '__main__':
     dice_before_disc = 0
     dice_after_disc = 0
 
+    count = 0
+
     for i, sample in enumerate(domain_loaderT):
         target_image, target_label, target_img_name = sample['image'], sample['map'], sample['img_name']
         target_pl = torch.stack([torch.from_numpy(refine_pseudo_label_dic.get(i)) for i in target_img_name])
@@ -115,8 +117,10 @@ if __name__ == '__main__':
 
         if dice_before_cup < dice_after_cup:
             print('image:{i}, dice_before_cup{dice_before_cup}<dice_after_cup{dice_after_cup}')
+            count += 1
         if dice_before_disc < dice_after_disc:
             print('image:{i}, dice_before_disc{dice_before_disc}<dice_after_disc{dice_after_disc}')
+            count += 1
 
         visualizer.display_current_results(temp, i, 'True')
         
@@ -124,6 +128,8 @@ if __name__ == '__main__':
     dice_before_disc /= len(domain_loaderT)
     dice_after_cup /= len(domain_loaderT)
     dice_after_disc /= len(domain_loaderT)
+
+    print(count)
 
     print('%.4f,%.4f'%(dice_before_cup,dice_after_cup))
     print('%.4f,%.4f'%(dice_before_disc,dice_after_disc))
