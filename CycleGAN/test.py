@@ -86,8 +86,6 @@ if __name__ == '__main__':
     dice_before_disc = 0
     dice_after_disc = 0
 
-    count = 0
-
     for i, sample in enumerate(domain_loaderT):
         target_image, target_label, target_img_name = sample['image'], sample['map'], sample['img_name']
         target_pl = torch.stack([torch.from_numpy(refine_pseudo_label_dic.get(i)) for i in target_img_name])
@@ -97,39 +95,37 @@ if __name__ == '__main__':
         target_prob_pl = F.interpolate(target_prob_pl, size=(256, 256), mode='bilinear', align_corners=False)
         target_label = target_label.to(device)
         target_pl = target_pl.to(device)
-        target_pl[target_pl > 0.5] = 1
-        target_pl[target_pl <= 0.5] = 0
+        target_pl[target_pl > 0.75] = 1
+        target_pl[target_pl <= 0.75] = 0
         target_prob_pl = target_prob_pl.to(device)
         _, target_new_pl = model.get_output_B(target_prob_pl, type1='one', type2='one')
         temp["prob_new_pseudo_label"] = target_new_pl
-        target_new_pl[target_new_pl > 0.5] = 1
-        target_new_pl[target_new_pl <= 0.5] = 0
+        target_new_pl[target_new_pl > 0.75] = 1
+        target_new_pl[target_new_pl <= 0.75] = 0
         
         dice_prob_cup, dice_prob_disc = dice_coeff_2label(target_pl, target_label)
+        before_cup, before_disc = dice_prob_cup, dice_prob_disc
         dice_before_cup += dice_prob_cup
         dice_before_disc += dice_prob_disc
         visualizer.plot_current_metrics({"before_dice_cup":dice_prob_cup,"before_dice_disc":dice_prob_disc})
 
         dice_prob_cup, dice_prob_disc = dice_coeff_2label(target_new_pl, target_label)
+        after_cup, after_disc = dice_prob_cup, dice_prob_disc
         dice_after_cup += dice_prob_cup
         dice_after_disc += dice_prob_disc
         visualizer.plot_current_metrics({"after_dice_cup":dice_prob_cup,"after_dice_disc":dice_prob_disc})
 
-        if dice_before_cup < dice_after_cup:
-            print('image:{%d}, dice_before_cup{%.4f}<dice_after_cup{%.4f}'%(i,dice_before_cup,dice_after_cup))
-            count += 1
-        if dice_before_disc < dice_after_disc:
-            print('image:{%d}, dice_before_disc{%.4f}<dice_after_disc{%.4f}'%(i,dice_before_disc,dice_after_disc))
-            count += 1
+        if before_cup < after_cup:
+            print('image:{%d}, before_cup{%.4f}<after_cup{%.4f}'%(i,before_cup,after_cup))
+        if before_disc < after_disc:
+            print('image:{%d}, before_disc{%.4f}<after_disc{%.4f}'%(i,before_disc,after_disc))
 
-        visualizer.display_current_results(temp, i, 'True')
+        visualizer.display_current_results(temp, i, True)
         
     dice_before_cup /= len(domain_loaderT)
     dice_before_disc /= len(domain_loaderT)
     dice_after_cup /= len(domain_loaderT)
     dice_after_disc /= len(domain_loaderT)
-
-    print(count)
 
     print('%.4f,%.4f'%(dice_before_cup,dice_after_cup))
     print('%.4f,%.4f'%(dice_before_disc,dice_after_disc))
