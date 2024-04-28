@@ -85,10 +85,9 @@ if __name__ == '__main__':
     dice_after_cup = 0
     dice_before_disc = 0
     dice_after_disc = 0
-    
-    flag = False
 
     for i, sample in enumerate(domain_loaderT):
+        flag = False
         visualizer.reset() 
         target_image, target_label, target_img_name = sample['image'], sample['map'], sample['img_name']
         target_pl = torch.stack([torch.from_numpy(refine_pseudo_label_dic.get(i)) for i in target_img_name])
