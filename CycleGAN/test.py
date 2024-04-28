@@ -85,6 +85,8 @@ if __name__ == '__main__':
     dice_after_cup = 0
     dice_before_disc = 0
     dice_after_disc = 0
+    
+    flag = False
 
     for i, sample in enumerate(domain_loaderT):
         visualizer.reset() 
@@ -118,8 +120,12 @@ if __name__ == '__main__':
 
         if before_cup < after_cup:
             print('image:{%d}, before_cup{%.4f}<after_cup{%.4f}'%(i,before_cup,after_cup))
+            flag = True
         if before_disc < after_disc:
             print('image:{%d}, before_disc{%.4f}<after_disc{%.4f}'%(i,before_disc,after_disc))
+            flag = True
+        if flag:
+            print(target_img_name)
 
         visualizer.display_current_results(temp, i, True)
         
