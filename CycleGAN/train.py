@@ -152,10 +152,10 @@ if __name__ == '__main__':
                 target_label = target_label.to(device)
                 target_prob_pl = target_prob_pl.to(device)
                 refine_target_new_pl, recon_target_new_pl = model.get_output_B(target_prob_pl, type1='one', type2='one')
-                refine_target_new_pl[refine_target_new_pl > 0.5] = 1
-                refine_target_new_pl[refine_target_new_pl <= 0.5] = 0
-                recon_target_new_pl[recon_target_new_pl > 0.5] = 1
-                recon_target_new_pl[recon_target_new_pl <= 0.5] = 0
+                refine_target_new_pl[refine_target_new_pl > 0.75] = 1
+                refine_target_new_pl[refine_target_new_pl <= 0.75] = 0
+                recon_target_new_pl[recon_target_new_pl > 0.75] = 1
+                recon_target_new_pl[recon_target_new_pl <= 0.75] = 0
                 refine_dice_prob_cup, refine_dice_prob_disc = dice_coeff_2label(refine_target_new_pl, target_label)
                 recon_dice_prob_cup, recon_dice_prob_disc = dice_coeff_2label(recon_target_new_pl, target_label)
                 refine_dice_cup += refine_dice_prob_cup
