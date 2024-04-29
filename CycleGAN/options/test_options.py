@@ -19,7 +19,6 @@ class TestOptions(BaseOptions):
         parser.add_argument('--display_port', type=int, default=8097, help='visdom port of the web display')
         parser.add_argument('--no_html', action='store_true', help='do not save intermediate training results to [opt.checkpoints_dir]/[opt.name]/web/')
 
-        parser.add_argument('--load_dir', type=str, default='/kaggle/input/fundus_pl_refine/pytorch/resnet_9blocks/4', help='load model here.')
         parser.add_argument('--results_dir', type=str, default='./results/', help='saves results here.')
         parser.add_argument('--aspect_ratio', type=float, default=1.0, help='aspect ratio of result images')
         parser.add_argument('--phase', type=str, default='test', help='train, val, test, etc')
