@@ -40,6 +40,7 @@ class BaseOptions():
         parser.add_argument('--init_gain', type=float, default=0.02, help='scaling factor for normal, xavier and orthogonal.')
         parser.add_argument('--no_dropout', action='store_true', help='no dropout for the generator')
         parser.add_argument('--use_diffusion', action='store_true', help='use diffusion in the model')
+        parser.add_argument('--load_dir', type=str, default='/kaggle/input/fundus_pl_refine/pytorch/resnet_9blocks/4', help='load model here.')
         # dataset parameters
         parser.add_argument('--dataset_mode', type=str, default='unaligned', help='chooses how datasets are loaded. [unaligned | aligned | single | colorization]')
         parser.add_argument('--direction', type=str, default='AtoB', help='AtoB or BtoA')
