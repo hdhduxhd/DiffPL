@@ -125,7 +125,7 @@ class DiffCycleGANModel(BaseModel):
     
     def forward(self):
         batch_size = self.real_A.shape[0]
-        self.t = torch.randint(400, 500, (batch_size,), device=self.device).long()
+        self.t = torch.randint(200, 300, (batch_size,), device=self.device).long()
         """Run forward pass; called by both functions <optimize_parameters> and <test>."""
         self.noise_real_A = torch.randn_like(self.real_A)
         self.real_A_noise = self.diffusion.q_sample(self.real_A, self.t, noise=self.noise_real_A)
@@ -151,7 +151,7 @@ class DiffCycleGANModel(BaseModel):
     def get_output_B(self, input, type1='one', type2='one'):
         # t = random.randint(200, 500)
         batch_size = input.shape[0]
-        t = torch.randint(400, 500, (batch_size,), device=self.device).long()
+        t = torch.randint(200, 300, (batch_size,), device=self.device).long()
         noise_input = torch.randn_like(input)
         input_noise = self.diffusion.q_sample(input, t, noise=noise_input)
         # input_latent = self.netDenoise_B(input_noise, torch.full((input.shape[0],), t, device=self.device, dtype=torch.long))
