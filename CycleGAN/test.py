@@ -122,10 +122,10 @@ if __name__ == '__main__':
         visualizer.plot_current_metrics({"after_dice_cup":dice_prob_cup,"after_dice_disc":dice_prob_disc})
 
         if before_cup < after_cup:
-            print('image:{%d}, before_cup{%.4f}<after_cup{%.4f}'%(i,before_cup,after_cup))
+            print('image:{%d} with timestep:{%d}, before_cup{%.4f}<after_cup{%.4f}'%(i,int(t[0][0]),before_cup,after_cup))
             flag = True
         if before_disc < after_disc:
-            print('image:{%d}, before_disc{%.4f}<after_disc{%.4f}'%(i,before_disc,after_disc))
+            print('image:{%d} with timestep:{%d}, before_disc{%.4f}<after_disc{%.4f}'%(i,int(t[0][0]),before_disc,after_disc))
             flag = True
         if flag:
             nums.append(i)
