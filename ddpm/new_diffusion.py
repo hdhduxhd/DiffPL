@@ -23,7 +23,6 @@ class GaussianDiffusion:
         alphas_cumprod = []
         for i in range(batch_size):
             temp = 1
-            print(t[i])
             for minus in range(int(t[i])):
                 temp *= (1 - (self.start+(t[i]-minus)*self.step))
             alphas_cumprod.append(temp)
