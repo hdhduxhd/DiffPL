@@ -107,13 +107,12 @@ if __name__ == '__main__':
         temp["prob_new_pseudo_label"] = target_new_pl
         target_new_pl[target_new_pl > 0.75] = 1
         target_new_pl[target_new_pl <= 0.75] = 0
-        visualizer.plot_current_metrics({"timestep":t[0][0]})
         
         dice_prob_cup, dice_prob_disc = dice_coeff_2label(target_pl, target_label)
         before_cup, before_disc = dice_prob_cup, dice_prob_disc
         dice_before_cup += dice_prob_cup
         dice_before_disc += dice_prob_disc
-        visualizer.plot_current_metrics({"before_dice_cup":dice_prob_cup,"before_dice_disc":dice_prob_disc})
+        visualizer.plot_current_metrics({"before_dice_cup":dice_prob_cup,"before_dice_disc":dice_prob_disc,"timestep":t[0][0]})
 
         dice_prob_cup, dice_prob_disc = dice_coeff_2label(target_new_pl, target_label)
         after_cup, after_disc = dice_prob_cup, dice_prob_disc
