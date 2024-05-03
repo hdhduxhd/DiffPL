@@ -45,6 +45,7 @@ class DiffCycleGANModel(BaseModel):
         """
         parser.set_defaults(no_dropout=True)  # default CycleGAN did not use dropout
         parser.add_argument('--max_timestep', type=int, default=500, help='output dim of linear')
+        parser.add_argument('--shift', type=int, default=0, help='start index of timestep')
         if is_train:
             parser.add_argument('--lambda_A', type=float, default=10.0, help='weight for cycle loss (A -> B -> A)')
             parser.add_argument('--lambda_B', type=float, default=10.0, help='weight for cycle loss (B -> A -> B)')
@@ -125,7 +126,7 @@ class DiffCycleGANModel(BaseModel):
         self.real_B = input['B' if AtoB else 'A'].to(self.device)
         logits = self.netG_N(self.real_B)
         y = get_rep_outputs(logits, 0.5, True)
-        column_vector = torch.arange(1, self.opt.max_timestep+1).view(self.opt.max_timestep, 1).cuda()
+        column_vector = torch.arange(self.opt.shift+1, self.opt.shift+self.opt.max_timestep+1).view(self.opt.max_timestep, 1).cuda()
         self.t = y @ column_vector.float()
         # self.image_paths = input['A_paths' if AtoB else 'B_paths']
     
@@ -160,7 +161,7 @@ class DiffCycleGANModel(BaseModel):
         # t = torch.randint(0, 100, (batch_size,), device=self.device).long()
         logits = self.netG_N(input)
         y = get_rep_outputs(logits, 0.5, True)
-        column_vector = torch.arange(1, self.opt.max_timestep+1).view(self.opt.max_timestep, 1).cuda()
+        column_vector = torch.arange(self.opt.shift+1, self.opt.shift+self.opt.max_timestep+1).view(self.opt.max_timestep, 1).cuda()
         t = y @ column_vector.float()
         noise_input = torch.randn_like(input)
         input_noise = self.diffusion.q_sample(input, t, noise=noise_input)
