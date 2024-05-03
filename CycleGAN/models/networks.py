@@ -253,7 +253,7 @@ class GetTimeStep(nn.Module):
 
     def forward(self, input):
         temp = self.model(input)
-        linear = nn.Linear((input.shape[2]//8)**2,self.max_timestep)
+        linear = nn.Linear((input.shape[2]//8)**2,self.max_timestep).cuda()
         temp = F.softmax(linear(temp),dim=1)
         return temp
 
