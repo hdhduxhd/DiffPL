@@ -8,7 +8,7 @@ sys.path[0]='/kaggle/working/DiffPL'
 from CycleGAN.util.image_pool import ImagePool
 from CycleGAN.models.base_model import BaseModel
 from CycleGAN.models import networks
-from ddpm.diffusion import GaussianDiffusion
+from ddpm.new_diffusion import *
 from ddpm.unet import UNet
 
 
@@ -44,6 +44,7 @@ class DiffCycleGANModel(BaseModel):
         Dropout is not used in the original CycleGAN paper.
         """
         parser.set_defaults(no_dropout=True)  # default CycleGAN did not use dropout
+        parser.add_argument('--max_timestep', type=int, default=500, help='output dim of linear')
         if is_train:
             parser.add_argument('--lambda_A', type=float, default=10.0, help='weight for cycle loss (A -> B -> A)')
             parser.add_argument('--lambda_B', type=float, default=10.0, help='weight for cycle loss (B -> A -> B)')
@@ -84,6 +85,7 @@ class DiffCycleGANModel(BaseModel):
                                         not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
         self.netG_B = networks.define_G(opt.output_nc, opt.input_nc, opt.ngf, opt.netG, opt.norm,
                                         not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
+        self.netG_N = networks.define_N(opt.input_nc, opt.ngf, opt.n_layers_D, opt.max_timestep, opt.norm, opt.init_type, opt.init_gain, self.gpu_ids)
         self.diffusion = GaussianDiffusion()
         # self.netDenoise_A = UNet(in_channel=opt.input_nc, out_channel=opt.input_nc).to(self.device)
         # self.netDenoise_B = UNet(in_channel=opt.output_nc, out_channel=opt.output_nc).to(self.device)
@@ -105,7 +107,7 @@ class DiffCycleGANModel(BaseModel):
             self.criterionIdt = torch.nn.L1Loss()
             # initialize optimizers; schedulers will be automatically created by function <BaseModel.setup>.
             # self.optimizer_G = torch.optim.Adam(itertools.chain(self.netG_A.parameters(), self.netG_B.parameters(), self.netDenoise_A.parameters(), self.netDenoise_B.parameters()), lr=opt.lr, betas=(opt.beta1, 0.999))
-            self.optimizer_G = torch.optim.Adam(itertools.chain(self.netG_A.parameters(), self.netG_B.parameters()), lr=opt.lr, betas=(opt.beta1, 0.999))
+            self.optimizer_G = torch.optim.Adam(itertools.chain(self.netG_A.parameters(), self.netG_B.parameters(), self.netG_N.parameters()), lr=opt.lr, betas=(opt.beta1, 0.999))
             self.optimizer_D = torch.optim.Adam(itertools.chain(self.netD_A.parameters(), self.netD_B.parameters()), lr=opt.lr, betas=(opt.beta1, 0.999))
             self.optimizers.append(self.optimizer_G)
             self.optimizers.append(self.optimizer_D)
@@ -121,11 +123,15 @@ class DiffCycleGANModel(BaseModel):
         AtoB = self.opt.direction == 'AtoB'
         self.real_A = input['A' if AtoB else 'B'].to(self.device)
         self.real_B = input['B' if AtoB else 'A'].to(self.device)
+        logits = self.netG_N(self.real_B)
+        y = get_rep_outputs(logits, 0.5, True)
+        column_vector = torch.arange(1, self.opt.max_timestep+1).view(self.opt.max_timestep, 1)
+        self.t = y @ column_vector.float()
         # self.image_paths = input['A_paths' if AtoB else 'B_paths']
     
     def forward(self):
-        batch_size = self.real_A.shape[0]
-        self.t = torch.randint(0, 100, (batch_size,), device=self.device).long()
+        # batch_size = self.real_A.shape[0]
+        # self.t = torch.randint(0, 100, (batch_size,), device=self.device).long()
         """Run forward pass; called by both functions <optimize_parameters> and <test>."""
         self.noise_real_A = torch.randn_like(self.real_A)
         self.real_A_noise = self.diffusion.q_sample(self.real_A, self.t, noise=self.noise_real_A)
