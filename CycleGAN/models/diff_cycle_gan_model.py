@@ -127,7 +127,6 @@ class DiffCycleGANModel(BaseModel):
         y = get_rep_outputs(logits, 0.5, True)
         column_vector = torch.arange(1, self.opt.max_timestep+1).view(self.opt.max_timestep, 1).cuda()
         self.t = y @ column_vector.float()
-        print(self.t)
         # self.image_paths = input['A_paths' if AtoB else 'B_paths']
     
     def forward(self):
@@ -156,9 +155,13 @@ class DiffCycleGANModel(BaseModel):
         self.rec_B = self.netG_A(self.fake_A_noise)   # G_A(G_B(B))
 
     def get_output_B(self, input, type1='one', type2='one'):
-        # t = random.randint(200, 500)
-        batch_size = input.shape[0]
-        t = torch.randint(0, 100, (batch_size,), device=self.device).long()
+        # # t = random.randint(200, 500)
+        # batch_size = input.shape[0]
+        # t = torch.randint(0, 100, (batch_size,), device=self.device).long()
+        logits = self.netG_N(input)
+        y = get_rep_outputs(logits, 0.5, True)
+        column_vector = torch.arange(1, self.opt.max_timestep+1).view(self.opt.max_timestep, 1).cuda()
+        t = y @ column_vector.float()
         noise_input = torch.randn_like(input)
         input_noise = self.diffusion.q_sample(input, t, noise=noise_input)
         # input_latent = self.netDenoise_B(input_noise, torch.full((input.shape[0],), t, device=self.device, dtype=torch.long))
