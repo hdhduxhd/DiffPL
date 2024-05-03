@@ -5,6 +5,7 @@ import functools
 from torch.optim import lr_scheduler
 from ddpm.diffusion import GaussianDiffusion
 from ddpm.unet import UNet
+import torch.nn.functional as F
 
 
 ###############################################################################
@@ -209,6 +210,52 @@ def define_D(input_nc, ndf, netD, n_layers_D=3, norm='batch', init_type='normal'
         raise NotImplementedError('Discriminator model name [%s] is not recognized' % netD)
     return init_net(net, init_type, init_gain, gpu_ids)
 
+def define_N(input_nc, ndf, n_layers_D=3, max_timestep=500, norm='batch', init_type='normal', init_gain=0.02, gpu_ids=[]):
+    norm_layer = get_norm_layer(norm_type=norm)
+
+    net = GetTimeStep(input_nc, ndf, n_layers=n_layers_D, norm_layer=norm_layer, max_timestep=max_timestep)
+    return init_net(net, init_type, init_gain, gpu_ids)
+
+class GetTimeStep(nn.Module):
+    def __init__(self, input_nc, ndf=64, n_layers=3, norm_layer=nn.BatchNorm2d, max_timestep=500):
+        super(NLayerDiscriminator, self).__init__()
+        self.max_timestep = max_timestep
+        if type(norm_layer) == functools.partial:
+            use_bias = norm_layer.func == nn.InstanceNorm2d
+        else:
+            use_bias = norm_layer == nn.InstanceNorm2d
+
+        kw = 3
+        padw = 1
+        sequence = [nn.Conv2d(input_nc, ndf, kernel_size=kw, stride=2, padding=padw), nn.LeakyReLU(0.2, True)]
+        nf_mult = 1
+        nf_mult_prev = 1
+        for n in range(1, n_layers):
+            nf_mult_prev = nf_mult
+            nf_mult = min(2 ** n, 8)
+            sequence += [
+                nn.Conv2d(ndf * nf_mult_prev, ndf * nf_mult, kernel_size=kw, stride=2, padding=padw, bias=use_bias),
+                norm_layer(ndf * nf_mult),
+                nn.LeakyReLU(0.2, True)
+            ]
+
+        nf_mult_prev = nf_mult
+        nf_mult = min(2 ** n_layers, 8)
+        sequence += [
+            nn.Conv2d(ndf * nf_mult_prev, ndf * nf_mult, kernel_size=kw, stride=1, padding=padw, bias=use_bias),
+            norm_layer(ndf * nf_mult),
+            nn.LeakyReLU(0.2, True)
+        ]
+
+        sequence += [nn.Conv2d(ndf * nf_mult, 1, kernel_size=kw, stride=1, padding=padw)]
+        sequence += [nn.Flatten()]  # 将特征图展平
+        self.model = nn.Sequential(*sequence)
+
+    def forward(self, input):
+        temp = self.model(input)
+        linear = nn.Linear((input.shape[2]//8)**2,self.max_timestep)
+        temp = F.softmax(linear(temp),dim=1)
+        return temp
 
 ##############################################################################
 # Classes
