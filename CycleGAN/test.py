@@ -103,10 +103,11 @@ if __name__ == '__main__':
         target_pl[target_pl > 0.75] = 1
         target_pl[target_pl <= 0.75] = 0
         target_prob_pl = target_prob_pl.to(device)
-        _, target_new_pl = model.get_output_B(target_prob_pl, type1='one', type2='one')
+        _, target_new_pl, t = model.get_output_B(target_prob_pl, type1='one', type2='one')
         temp["prob_new_pseudo_label"] = target_new_pl
         target_new_pl[target_new_pl > 0.75] = 1
         target_new_pl[target_new_pl <= 0.75] = 0
+        visualizer.plot_current_metrics({"timestep":t[0][0]})
         
         dice_prob_cup, dice_prob_disc = dice_coeff_2label(target_pl, target_label)
         before_cup, before_disc = dice_prob_cup, dice_prob_disc
