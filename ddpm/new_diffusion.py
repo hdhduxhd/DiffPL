@@ -31,3 +31,33 @@ class GaussianDiffusion:
         sqrt_one_minus_alphas_cumprod_t = torch.sqrt(1.0 - alphas_cumprod_t).reshape(batch_size, *((1,) * (len(x_start.shape) - 1)))
 
         return sqrt_alphas_cumprod_t * x_start + sqrt_one_minus_alphas_cumprod_t * noise
+
+from torch.autograd import Variable
+import torch.nn.functional as F
+def sample_gumbel(shape, eps=1e-20, tens_type=torch.FloatTensor):
+    """Sample from Gumbel(0, 1)"""
+    U = Variable(tens_type(*shape).uniform_(), requires_grad=False)
+    return -torch.log(-torch.log(U + eps) + eps)
+
+# modified for PyTorch from https://github.com/ericjang/gumbel-softmax/blob/master/Categorical%20VAE.ipynb
+def gumbel_softmax_sample(logits, temperature):
+    """ Draw a sample from the Gumbel-Softmax distribution"""
+    y = logits + sample_gumbel(logits.shape, tens_type=type(logits.data))
+    return F.softmax(y / temperature, dim=1)
+
+def onehot_from_logits(logits, eps=0.0):
+    """
+    Given batch of logits, return one-hot sample using epsilon greedy strategy
+    (based on given epsilon)
+    """
+    # get best (according to current policy) actions in one-hot form
+    argmax_acs = (logits == logits.max(1, keepdim=True)[0]).float()
+    if eps == 0.0:
+        return argmax_acs
+
+def get_rep_outputs(logits, temperature, hard):    
+    y = gumbel_softmax_sample(logits, temperature)
+    if hard:
+        y_hard = onehot_from_logits(y)
+        y = (y_hard - y).detach() + y
+    return y
