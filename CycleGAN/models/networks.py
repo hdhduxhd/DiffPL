@@ -218,7 +218,7 @@ def define_N(input_nc, ndf, n_layers_D=3, max_timestep=500, norm='batch', init_t
 
 class GetTimeStep(nn.Module):
     def __init__(self, input_nc, ndf=64, n_layers=3, norm_layer=nn.BatchNorm2d, max_timestep=500):
-        super(NLayerDiscriminator, self).__init__()
+        super(GetTimeStep, self).__init__()
         self.max_timestep = max_timestep
         if type(norm_layer) == functools.partial:
             use_bias = norm_layer.func == nn.InstanceNorm2d
