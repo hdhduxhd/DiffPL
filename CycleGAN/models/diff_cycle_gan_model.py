@@ -125,7 +125,7 @@ class DiffCycleGANModel(BaseModel):
         self.real_B = input['B' if AtoB else 'A'].to(self.device)
         logits = self.netG_N(self.real_B)
         y = get_rep_outputs(logits, 0.5, True)
-        column_vector = torch.arange(1, self.opt.max_timestep+1).view(self.opt.max_timestep, 1)
+        column_vector = torch.arange(1, self.opt.max_timestep+1).view(self.opt.max_timestep, 1).cuda()
         self.t = y @ column_vector.float()
         # self.image_paths = input['A_paths' if AtoB else 'B_paths']
     
