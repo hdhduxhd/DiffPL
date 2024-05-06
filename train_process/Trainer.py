@@ -170,6 +170,29 @@ class Trainer(object):
                     'learning_rate_dis2': get_lr(self.optim_dis2),
                     'best_mean_dice': self.best_mean_dice,
                 }, osp.join(self.out, 'checkpoint_%d.pth.tar' % self.best_epoch))
+
+            val_cup_dice = 0.0
+            val_disc_dice = 0.0
+            datanum_cnt = 0.0
+            for batch_idx, sample in tqdm.tqdm(
+                    enumerate(self.domain_loaderT), total=len(self.domain_loaderT),
+                    desc='Valid iteration=%d' % self.iteration, ncols=80,
+                    leave=False):
+                data = sample['image']
+                target_map = sample['map']
+                target_boundary = sample['boundary']
+                if self.cuda:
+                    data, target_map, target_boundary = data.cuda(), target_map.cuda(), target_boundary.cuda()
+                with torch.no_grad():
+                    predictions, boundary, _ = self.model_gen(data)
+
+                dice_cup, dice_disc = dice_coeff_2label(predictions, target_map)
+                val_cup_dice += np.sum(dice_cup)
+                val_disc_dice += np.sum(dice_disc)
+                datanum_cnt += float(dice_cup.shape[0])
+            val_cup_dice /= datanum_cnt
+            val_disc_dice /= datanum_cnt
+            wandb.log({"target_cup_dice": val_cup_dice, "target_disc_dice": val_disc_dice})
             # else:
             #     if (self.epoch + 1) % 10 == 0:
             #         torch.save({
@@ -187,7 +210,6 @@ class Trainer(object):
             #         'learning_rate_dis2': get_lr(self.optim_dis2),
             #         'best_mean_dice': self.best_mean_dice,
             #         }, osp.join(self.out, 'checkpoint_%d.pth.tar' % (self.epoch + 1)))
-
 
             with open(osp.join(self.out, 'log.csv'), 'a') as f:
                 elapsed_time = (
