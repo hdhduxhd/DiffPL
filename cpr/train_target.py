@@ -17,7 +17,7 @@ sys.path[0]='/kaggle/working/DiffPL/cpr'
 bceloss = torch.nn.BCELoss(reduction='none')
 seed = 3377
 savefig = False
-get_hd = True
+get_hd = False
 model_save = False#False
 if True:
     os.environ['PYTHONHASHSEED'] = str(seed)
