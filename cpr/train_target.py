@@ -12,6 +12,7 @@ import torch.backends.cudnn as cudnn
 import random
 import numpy as np
 import sys
+sys.path[0]='/kaggle/working/DiffPL/cpr'
 
 bceloss = torch.nn.BCELoss(reduction='none')
 seed = 3377
@@ -48,11 +49,11 @@ from torch.utils.tensorboard import SummaryWriter
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model-file', type=str, default='./log/sim_learn_D2.pth.tar')
+    parser.add_argument('--model-file', type=str, default='/kaggle/input/fundus-pretrain/sim_learn_D2.pth.tar')
     parser.add_argument('--dataset', type=str, default='Domain2')
     parser.add_argument('--source', type=str, default='Domain1')
     parser.add_argument('-g', '--gpu', type=int, default=0)
-    parser.add_argument('--data-dir', default='../../../Data/Fundus/')
+    parser.add_argument('--data-dir', default='/kaggle/input/fundus/Fundus')
     parser.add_argument('--out-stride',type=int,default=16)
     parser.add_argument('--sync-bn',type=bool,default=True)
     parser.add_argument('--freeze-bn',type=bool,default=False)
@@ -101,12 +102,12 @@ if __name__ == '__main__':
     model.train()
 
     if args.dataset=="Domain2":
-        npfilename = '../generate_pseudo/pseudolabel_D2.npz'
-        npfilename_new = './log/pseudolabel_D2_new.npz'
+        npfilename = '/kaggle/input/fundus-pseudo/pseudolabel_D2.npz'
+        npfilename_new = '/kaggle/input/fundus-pseudo/pseudolabel_D2_new.npz'
     
     elif args.dataset=="Domain1":
-        npfilename = '../generate_pseudo/pseudolabel_D1.npz'
-        npfilename_new = './log/pseudolabel_D1_new.npz'
+        npfilename = '/kaggle/input/fundus-pseudo/pseudolabel_D1.npz'
+        npfilename_new = '/kaggle/input/fundus-pseudo/pseudolabel_D1_new.npz'
     
     npdata = np.load(npfilename, allow_pickle=True)
     #uncertain_dic = npdata['arr_1'].item()
@@ -217,8 +218,8 @@ if __name__ == '__main__':
         disc_hd /= datanum_cnt_disc
         
 
-        #if not os.path.exists('./logs/train_target'):
-        #    os.mkdir('./logs/train_target')
+        if not os.path.exists('./logs/train_target'):
+           os.mkdir('./logs/train_target')
         if args.dataset == 'Domain3':
             savefile = './log/cpr' + '_D3' + '.pth.tar'
         elif args.dataset == 'Domain2':
