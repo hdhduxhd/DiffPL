@@ -59,7 +59,7 @@ def disenable_dropout(model):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model-file', type=str, default='/kaggle/input/fundus-pretrain/best_on_domain1.tar')#D4/checkpoint_170.pth.tar
+    parser.add_argument('--model-file', type=str, default='/kaggle/input/fundus-pretrain/checkpoint_185.pth.tar')#D4/checkpoint_170.pth.tar
     parser.add_argument('--dataset', type=str, default='Domain2')#Domain1
     parser.add_argument('--batchsize', type=int, default=4)
     parser.add_argument('--source', type=str, default='Domain1')#Domain4
