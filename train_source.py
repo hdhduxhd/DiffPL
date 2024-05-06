@@ -35,7 +35,7 @@ def main():
         '--datasetS', type=str, default='Domain1', help='test folder id contain images ROIs to test'
     )#default='Domain4'
     parser.add_argument(
-        '--datasetT', type=str, default='Domain1', help='refuge / Drishti-GS/ RIM-ONE_r3'
+        '--datasetT', type=str, default='Domain2', help='refuge / Drishti-GS/ RIM-ONE_r3'
     )
     parser.add_argument(
         '--batch-size', type=int, default=8, help='batch size for training the model'
