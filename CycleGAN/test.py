@@ -40,7 +40,7 @@ if __name__ == '__main__':
     # 1. dataset
     composed_transforms_tr = transforms.Compose([
         #tr.Resize(512),###
-        tr.RandomScaleCrop(256),
+        tr.RandomScaleCrop(512),
         tr.RandomRotate(),
         tr.RandomFlip(),
         tr.elastic_transform(),
@@ -53,7 +53,7 @@ if __name__ == '__main__':
 
     composed_transforms_ts = transforms.Compose([
         # tr.RandomCrop(512),
-        tr.Resize(256),
+        tr.Resize(512),
         tr.Normalize_tf(),
         tr.ToTensor()
     ])
@@ -96,8 +96,8 @@ if __name__ == '__main__':
         target_pl = torch.stack([torch.from_numpy(refine_pseudo_label_dic.get(i)) for i in target_img_name])
         target_prob_pl = torch.stack([torch.from_numpy(refine_prob_dic.get(i)) for i in target_img_name])
         temp = {"image":target_image+1, "ground_truth":target_label, "pseudo_label":target_pl, "prob_pseudo_label":target_prob_pl}
-        target_pl = F.interpolate(target_pl.float(), size=(256, 256), mode='bilinear', align_corners=False)
-        target_prob_pl = F.interpolate(target_prob_pl, size=(256, 256), mode='bilinear', align_corners=False)
+        # target_pl = F.interpolate(target_pl.float(), size=(256, 256), mode='bilinear', align_corners=False)
+        # target_prob_pl = F.interpolate(target_prob_pl, size=(256, 256), mode='bilinear', align_corners=False)
         target_label = target_label.to(device)
         target_pl = target_pl.to(device)
         target_pl[target_pl > 0.75] = 1
