@@ -138,7 +138,7 @@ def main():
     domain = DL.FundusSegmentation(base_dir=args.data_dir, dataset=args.datasetS, split='train/ROIs', transform=composed_transforms_tr)
     domain_loaderS = DataLoader(domain, batch_size=args.batch_size, shuffle=True, num_workers=2, pin_memory=True)
 
-    domain_T = DL.FundusSegmentation(base_dir=args.data_dir, dataset=args.datasetT, split='train/ROIs', transform=composed_transforms_tr)
+    domain_T = DL.FundusSegmentation(base_dir=args.data_dir, dataset=args.datasetT, split='train/ROIs', transform=composed_transforms_ts)
     domain_loaderT = DataLoader(domain_T, batch_size=args.batch_size, shuffle=False, num_workers=2, pin_memory=True)
 
     domain_val = DL.FundusSegmentation(base_dir=args.data_dir, dataset=args.datasetS, split='test/ROIs', transform=composed_transforms_ts)
