@@ -218,8 +218,8 @@ if __name__ == '__main__':
         disc_hd /= datanum_cnt_disc
         
 
-        if not os.path.exists('./logs/train_target'):
-           os.mkdir('./logs/train_target')
+        if not os.path.exists('./logs'):
+           os.mkdir('./logs')
         if args.dataset == 'Domain3':
             savefile = './log/cpr' + '_D3' + '.pth.tar'
         elif args.dataset == 'Domain2':
