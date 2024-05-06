@@ -705,7 +705,7 @@ class ToTensor(object):
         # torch image: C X H X W
         img = np.array(sample['image']).astype(np.float32).transpose((2, 0, 1))
         map = np.array(sample['map']).astype(np.uint8).transpose((2, 0, 1))
-        boundary = np.array(sample['boundary']).astype(np.float).transpose((2, 0, 1))
+        boundary = np.array(sample['boundary']).astype(np.float32).transpose((2, 0, 1))
         name = sample['img_name']
         img = torch.from_numpy(img).float()
         map = torch.from_numpy(map).float()
