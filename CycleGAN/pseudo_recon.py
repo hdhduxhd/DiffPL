@@ -80,11 +80,11 @@ if __name__ == '__main__':
     if not os.path.exists('./log'):
         os.mkdir('./log')
     
-    if args.datasetT=="Domain2":
+    if opt.datasetT=="Domain2":
         np.savez('./log/pseudolabel_D2_recon', pseudo_label_dic, prob_dic)
 
-    if args.datasetT=="Domain4":
+    if opt.datasetT=="Domain4":
         np.savez('./log/pseudolabel_D4_recon', pseudo_label_dic, prob_dic)
 
-    if args.datasetT=="Domain1":
+    if opt.datasetT=="Domain1":
         np.savez('./log/pseudolabel_D1_recon', pseudo_label_dic, prob_dic)   
