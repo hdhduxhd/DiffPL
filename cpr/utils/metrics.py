@@ -128,3 +128,28 @@ def DiceLoss(input, target):
 
     return 1 - ((2. * intersection + smooth) /
                 (iflat.sum() + tflat.sum() + smooth))
+
+def circularity(y_pred):
+    """
+    y_pred: BxHxW
+    """
+    x = y_pred[:, 1:, :] - y_pred[:, :-1, :]  # horizontal and vertical directions
+    y = y_pred[:, :, 1:] - y_pred[:, :, :-1]
+
+    delta_x = x[:, :, 1:] ** 2
+    delta_y = y[:, 1:, :] ** 2
+
+    delta_u = torch.abs(delta_x + delta_y)
+
+    epsilon = 0.00000001  # a small value to avoid division by zero in practice
+    w = 0.01
+
+    length = w * torch.sqrt(delta_u + epsilon).sum(dim=[1, 2])
+    area = y_pred.sum(dim=[1, 2])
+
+    compactness_loss = torch.sum(length ** 2 / (area * 4 * 3.1415926))
+
+    return compactness_loss
+
+def circularity_2label(y_pred):
+    return (circularity(y_pred[:,0,...]) + circularity(y_pred[:,1,...])) / 2
