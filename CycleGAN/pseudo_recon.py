@@ -72,8 +72,9 @@ if __name__ == '__main__':
         target_prob_pl = target_prob_pl.to(device)
         _, target_new_pl, t = model.get_output_B(target_prob_pl, type1='one', type2='one')
 
-        prob_dic[target_img_name] = target_new_pl.detach().cpu().numpy()
-        pseudo_label_dic[target_img_name] = (target_new_pl>0.75).long().detach().cpu().numpy()
+        name = target_img_name[0]
+        prob_dic[name] = target_new_pl.detach().cpu().numpy()
+        pseudo_label_dic[name] = (target_new_pl>0.75).long().detach().cpu().numpy()
 
     if not os.path.exists('./log'):
         os.mkdir('./log')
