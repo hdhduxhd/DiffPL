@@ -11,6 +11,30 @@ from CycleGAN.models import networks
 from ddpm.new_diffusion import *
 from ddpm.unet import UNet
 
+def circularity(y_pred):
+    """
+    y_pred: BxHxW
+    """
+    x = y_pred[:, 1:, :] - y_pred[:, :-1, :]  # horizontal and vertical directions
+    y = y_pred[:, :, 1:] - y_pred[:, :, :-1]
+
+    delta_x = x[:, :, 1:] ** 2
+    delta_y = y[:, 1:, :] ** 2
+
+    delta_u = torch.abs(delta_x + delta_y)
+
+    epsilon = 0.00000001  # a small value to avoid division by zero in practice
+    w = 0.01
+
+    length = w * torch.sqrt(delta_u + epsilon).sum(dim=[1, 2])
+    area = y_pred.sum(dim=[1, 2])
+
+    compactness_loss = torch.sum(length ** 2 / (area * 4 * 3.1415926))
+
+    return compactness_loss
+
+def circularity_2label(y_pred):
+    return (circularity(y_pred[:,0,...]) + circularity(y_pred[:,1,...])) / 2
 
 class DiffCycleGANModel(BaseModel):
     """
@@ -63,7 +87,7 @@ class DiffCycleGANModel(BaseModel):
         BaseModel.__init__(self, opt)
         # specify the training losses you want to print out. The training/test scripts will call <BaseModel.get_current_losses>
         # self.loss_names = ['D_A', 'G_A', 'cycle_A', 'idt_A', 'D_B', 'G_B', 'cycle_B', 'idt_B', 'diff']
-        self.loss_names = ['D_A', 'G_A', 'cycle_A', 'idt_A', 'D_B', 'G_B', 'cycle_B', 'idt_B']
+        self.loss_names = ['D_A', 'G_A', 'cycle_A', 'idt_A', 'D_B', 'G_B', 'cycle_B', 'idt_B', 'circulrity']
         # specify the images you want to save/display. The training/test scripts will call <BaseModel.get_current_visuals>
         visual_names_A = ['real_A', 'fake_B', 'rec_A', 'real_A_noise', 'fake_B_noise']
         visual_names_B = ['real_B', 'fake_A', 'rec_B', 'real_B_noise', 'fake_A_noise']
@@ -286,7 +310,8 @@ class DiffCycleGANModel(BaseModel):
         # self.loss_diff_fake_A = F.mse_loss(self.fake_A_latent, self.fake_A_noise) 
         # self.loss_diff = (self.loss_diff_real_A + self.loss_diff_fake_B + self.loss_diff_real_B + self.loss_diff_fake_A) * lambda_N
         # combined loss and calculate gradients
-        self.loss_G = self.loss_G_A + self.loss_G_B + self.loss_cycle_A + self.loss_cycle_B + self.loss_idt_A + self.loss_idt_B
+        self.circulrity = circularity_2label(self.rec_B)
+        self.loss_G = self.loss_G_A + self.loss_G_B + self.loss_cycle_A + self.loss_cycle_B + self.loss_idt_A + self.loss_idt_B + self.circulrity
         self.loss_G.backward()
         
     def optimize_parameters(self):
