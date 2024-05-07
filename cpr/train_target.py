@@ -58,6 +58,8 @@ if __name__ == '__main__':
     parser.add_argument('--sync-bn',type=bool,default=True)
     parser.add_argument('--freeze-bn',type=bool,default=False)
     parser.add_argument('--num_epochs',type=int,default=10)
+    parser.add_argument('--npfilename',type=str,default='/kaggle/input/fundus-pseudo/pseudolabel_D2.npz')
+    parser.add_argument('--npfilename_new',type=str,default='/kaggle/input/fundus-pseudo/pseudolabel_D2_new.npz')
     args = parser.parse_args()
     num_epochs = args.num_epochs
     tao=0.05
@@ -100,20 +102,12 @@ if __name__ == '__main__':
     model.load_state_dict(checkpoint['model_state_dict'])
     
     model.train()
-
-    if args.dataset=="Domain2":
-        npfilename = '/kaggle/input/fundus-pseudo/pseudolabel_D2.npz'
-        npfilename_new = '/kaggle/input/fundus-pseudo/pseudolabel_D2_new.npz'
     
-    elif args.dataset=="Domain1":
-        npfilename = '/kaggle/input/fundus-pseudo/pseudolabel_D1.npz'
-        npfilename_new = '/kaggle/input/fundus-pseudo/pseudolabel_D1_new.npz'
-    
-    npdata = np.load(npfilename, allow_pickle=True)
+    npdata = np.load(args.npfilename, allow_pickle=True)
     #uncertain_dic = npdata['arr_1'].item()
     proto_pseudo_dic = npdata['arr_2'].item()
 
-    npdata = np.load(npfilename_new, allow_pickle=True)
+    npdata = np.load(args.npfilename_new, allow_pickle=True)
     pseudo_label_dic = npdata['arr_0'].item()
     prob_dic = npdata['arr_1'].item()
 
