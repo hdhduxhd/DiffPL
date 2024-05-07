@@ -24,12 +24,11 @@ def circularity(y_pred):
     delta_u = torch.abs(delta_x + delta_y)
 
     epsilon = 0.00000001  # a small value to avoid division by zero in practice
-    w = 0.01
 
-    length = w * torch.sqrt(delta_u + epsilon).sum(dim=[1, 2])
+    length = torch.sqrt(delta_u + epsilon).sum(dim=[1, 2])
     area = y_pred.sum(dim=[1, 2])
 
-    compactness_loss = torch.sum(length ** 2 / (area * 4 * 3.1415926))
+    compactness_loss = torch.sum(-1 * torch.log((area * 4 * 3.1415926 + epsilon) / (length ** 2)))
 
     return compactness_loss
 
