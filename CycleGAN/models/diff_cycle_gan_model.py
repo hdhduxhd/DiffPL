@@ -174,7 +174,7 @@ class DiffCycleGANModel(BaseModel):
         # column_vector = torch.arange(self.opt.shift+1, self.opt.shift+self.opt.max_timestep+1).view(self.opt.max_timestep, 1).cuda()
         column_vector1 = torch.arange(0, self.opt.max_timestep//100).view(self.opt.max_timestep//100, 1).cuda()
         column_vector2 = torch.arange(0, 10).view(10, 1).cuda()
-        column_vector3 = torch.arange(0, 10).view(10, 1).cuda()
+        column_vector3 = torch.arange(1, 10).view(9, 1).cuda()
         
         self.t = (y1 @ column_vector1.float()) * 100 + (y2 @ column_vector2.float()) * 10 + (y3 @ column_vector3.float())
         # self.image_paths = input['A_paths' if AtoB else 'B_paths']
@@ -218,7 +218,7 @@ class DiffCycleGANModel(BaseModel):
         y3 = get_rep_outputs(logits3, 0.5, True)
         column_vector1 = torch.arange(0, self.opt.max_timestep//100).view(self.opt.max_timestep//100, 1).cuda()
         column_vector2 = torch.arange(0, 10).view(10, 1).cuda()
-        column_vector3 = torch.arange(0, 10).view(10, 1).cuda()
+        column_vector3 = torch.arange(1, 10).view(9, 1).cuda()
         t = (y1 @ column_vector1.float()) * 100 + (y2 @ column_vector2.float()) * 10 + (y3 @ column_vector3.float())
         
         noise_input = torch.randn_like(input)
