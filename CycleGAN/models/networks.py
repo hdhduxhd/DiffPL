@@ -255,21 +255,21 @@ class GetTimeStep(nn.Module):
     def forward(self, input):
         temp = self.model(input)
         # linear = nn.Linear((input.shape[2]//8)**2,self.max_timestep).cuda()
-        linear1 = nn.Sequential([
+        linear1 = nn.Sequential(
             nn.Linear((input.shape[2]//8)**2,128),
-            nn.Linear((128,32),
-            nn.Linear((32,self.hundred_num)
-        ]).cuda()
-        linear2 = nn.Sequential([
+            nn.Linear(128,32),
+            nn.Linear(32,self.hundred_num)
+        ).cuda()
+        linear2 = nn.Sequential(
             nn.Linear((input.shape[2]//8)**2,128),
-            nn.Linear((128,32),
-            nn.Linear((32,10)
-        ]).cuda()
-        linear3 = nn.Sequential([
+            nn.Linear(128,32),
+            nn.Linear(32,10)
+        ).cuda()
+        linear3 = nn.Sequential(
             nn.Linear((input.shape[2]//8)**2,128),
-            nn.Linear((128,32),
-            nn.Linear((32,10)
-        ]).cuda()
+            nn.Linear(128,32),
+            nn.Linear(32,10)
+        ).cuda()
         temp1 = F.softmax(linear1(temp),dim=1)
         temp2 = F.softmax(linear2(temp),dim=1)
         temp3 = F.softmax(linear3(temp),dim=1)
