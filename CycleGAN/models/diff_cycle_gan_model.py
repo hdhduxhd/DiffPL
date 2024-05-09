@@ -31,27 +31,27 @@ from ddpm.unet import UNet
 #     return compactness_loss
 
 # 1/circularity
-def circularity(y_pred):
-    """
-    y_pred: BxHxW
-    """
-    x = y_pred[:, 1:, :] - y_pred[:, :-1, :]  # horizontal and vertical directions
-    y = y_pred[:, :, 1:] - y_pred[:, :, :-1]
+# def circularity(y_pred):
+#     """
+#     y_pred: BxHxW
+#     """
+#     x = y_pred[:, 1:, :] - y_pred[:, :-1, :]  # horizontal and vertical directions
+#     y = y_pred[:, :, 1:] - y_pred[:, :, :-1]
 
-    delta_x = x[:, :, 1:] ** 2
-    delta_y = y[:, 1:, :] ** 2
-    delta_u = torch.abs(delta_x + delta_y)
+#     delta_x = x[:, :, 1:] ** 2
+#     delta_y = y[:, 1:, :] ** 2
+#     delta_u = torch.abs(delta_x + delta_y)
 
-    epsilon = 0.00000001  # a small value to avoid division by zero in practice
-    w = 0.01
-    length = w * torch.sqrt(delta_u + epsilon).sum(dim=[1, 2])
-    area = y_pred.sum(dim=[1, 2])
+#     epsilon = 0.00000001  # a small value to avoid division by zero in practice
+#     w = 0.01
+#     length = w * torch.sqrt(delta_u + epsilon).sum(dim=[1, 2])
+#     area = y_pred.sum(dim=[1, 2])
 
-    compactness_loss = torch.sum(length ** 2 / (area * 4 * 3.1415926))
-    return compactness_loss
+#     compactness_loss = torch.sum(length ** 2 / (area * 4 * 3.1415926))
+#     return compactness_loss
 
-def circularity_2label(y_pred):
-    return (circularity(y_pred[:,0,...]) + circularity(y_pred[:,1,...])) / 2
+# def circularity_2label(y_pred):
+#     return (circularity(y_pred[:,0,...]) + circularity(y_pred[:,1,...])) / 2
 
 class DiffCycleGANModel(BaseModel):
     """
@@ -104,7 +104,7 @@ class DiffCycleGANModel(BaseModel):
         BaseModel.__init__(self, opt)
         # specify the training losses you want to print out. The training/test scripts will call <BaseModel.get_current_losses>
         # self.loss_names = ['D_A', 'G_A', 'cycle_A', 'idt_A', 'D_B', 'G_B', 'cycle_B', 'idt_B', 'diff']
-        self.loss_names = ['D_A', 'G_A', 'cycle_A', 'idt_A', 'D_B', 'G_B', 'cycle_B', 'idt_B', 'circulrity']
+        self.loss_names = ['D_A', 'G_A', 'cycle_A', 'idt_A', 'D_B', 'G_B', 'cycle_B', 'idt_B']
         # specify the images you want to save/display. The training/test scripts will call <BaseModel.get_current_visuals>
         visual_names_A = ['real_A', 'fake_B', 'rec_A', 'real_A_noise', 'fake_B_noise']
         visual_names_B = ['real_B', 'fake_A', 'rec_B', 'real_B_noise', 'fake_A_noise']
@@ -165,10 +165,18 @@ class DiffCycleGANModel(BaseModel):
         AtoB = self.opt.direction == 'AtoB'
         self.real_A = input['A' if AtoB else 'B'].to(self.device)
         self.real_B = input['B' if AtoB else 'A'].to(self.device)
-        logits = self.netG_N(self.real_B)
-        y = get_rep_outputs(logits, 0.5, True)
-        column_vector = torch.arange(self.opt.shift+1, self.opt.shift+self.opt.max_timestep+1).view(self.opt.max_timestep, 1).cuda()
-        self.t = y @ column_vector.float()
+        # logits = self.netG_N(self.real_B)
+        logits1, logits2, logits3 = self.netG_N(self.real_B)
+        # y = get_rep_outputs(logits, 0.5, True)
+        y1 = get_rep_outputs(logits1, 0.5, True)
+        y2 = get_rep_outputs(logits2, 0.5, True)
+        y3 = get_rep_outputs(logits3, 0.5, True)
+        # column_vector = torch.arange(self.opt.shift+1, self.opt.shift+self.opt.max_timestep+1).view(self.opt.max_timestep, 1).cuda()
+        column_vector1 = torch.arange(0, self.opt.max_timestep//100).view(self.opt.max_timestep//100, 1).cuda()
+        column_vector2 = torch.arange(0, 10).view(10, 1).cuda()
+        column_vector3 = torch.arange(0, 10).view(10, 1).cuda()
+        
+        self.t = (y1 @ column_vector1.float()) * 100 + (y2 @ column_vector2.float()) * 10 + (y3 @ column_vector3.float())
         # self.image_paths = input['A_paths' if AtoB else 'B_paths']
     
     def forward(self):
@@ -200,10 +208,19 @@ class DiffCycleGANModel(BaseModel):
         # # t = random.randint(200, 500)
         # batch_size = input.shape[0]
         # t = torch.randint(0, 100, (batch_size,), device=self.device).long()
-        logits = self.netG_N(input)
-        y = get_rep_outputs(logits, 0.5, True)
-        column_vector = torch.arange(self.opt.shift+1, self.opt.shift+self.opt.max_timestep+1).view(self.opt.max_timestep, 1).cuda()
-        t = y @ column_vector.float()
+        # logits = self.netG_N(input)
+        # y = get_rep_outputs(logits, 0.5, True)
+        # column_vector = torch.arange(self.opt.shift+1, self.opt.shift+self.opt.max_timestep+1).view(self.opt.max_timestep, 1).cuda()
+        # t = y @ column_vector.float()
+        logits1, logits2, logits3 = self.netG_N(input)
+        y1 = get_rep_outputs(logits1, 0.5, True)
+        y2 = get_rep_outputs(logits2, 0.5, True)
+        y3 = get_rep_outputs(logits3, 0.5, True)
+        column_vector1 = torch.arange(0, self.opt.max_timestep//100).view(self.opt.max_timestep//100, 1).cuda()
+        column_vector2 = torch.arange(0, 10).view(10, 1).cuda()
+        column_vector3 = torch.arange(0, 10).view(10, 1).cuda()
+        t = (y1 @ column_vector1.float()) * 100 + (y2 @ column_vector2.float()) * 10 + (y3 @ column_vector3.float())
+        
         noise_input = torch.randn_like(input)
         input_noise = self.diffusion.q_sample(input, t, noise=noise_input)
         # input_latent = self.netDenoise_B(input_noise, torch.full((input.shape[0],), t, device=self.device, dtype=torch.long))
@@ -327,8 +344,8 @@ class DiffCycleGANModel(BaseModel):
         # self.loss_diff_fake_A = F.mse_loss(self.fake_A_latent, self.fake_A_noise) 
         # self.loss_diff = (self.loss_diff_real_A + self.loss_diff_fake_B + self.loss_diff_real_B + self.loss_diff_fake_A) * lambda_N
         # combined loss and calculate gradients
-        self.loss_circulrity = circularity_2label(self.rec_B)
-        self.loss_G = self.loss_G_A + self.loss_G_B + self.loss_cycle_A + self.loss_cycle_B + self.loss_idt_A + self.loss_idt_B + self.loss_circulrity
+        # self.loss_circulrity = circularity_2label(self.rec_B)
+        self.loss_G = self.loss_G_A + self.loss_G_B + self.loss_cycle_A + self.loss_cycle_B + self.loss_idt_A + self.loss_idt_B
         self.loss_G.backward()
         
     def optimize_parameters(self):
