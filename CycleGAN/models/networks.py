@@ -268,7 +268,7 @@ class GetTimeStep(nn.Module):
         linear3 = nn.Sequential(
             nn.Linear((input.shape[2]//8)**2,128),
             nn.Linear(128,32),
-            nn.Linear(32,10)
+            nn.Linear(32,9)
         ).cuda()
         temp1 = F.softmax(linear1(temp),dim=1)
         temp2 = F.softmax(linear2(temp),dim=1)
