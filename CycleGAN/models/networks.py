@@ -219,7 +219,8 @@ def define_N(input_nc, ndf, n_layers_D=3, max_timestep=500, norm='batch', init_t
 class GetTimeStep(nn.Module):
     def __init__(self, input_nc, ndf=64, n_layers=3, norm_layer=nn.BatchNorm2d, max_timestep=500):
         super(GetTimeStep, self).__init__()
-        self.max_timestep = max_timestep
+        # self.max_timestep = max_timestep
+        self.hundred_num = max_timestep//100
         if type(norm_layer) == functools.partial:
             use_bias = norm_layer.func == nn.InstanceNorm2d
         else:
@@ -253,9 +254,26 @@ class GetTimeStep(nn.Module):
 
     def forward(self, input):
         temp = self.model(input)
-        linear = nn.Linear((input.shape[2]//8)**2,self.max_timestep).cuda()
-        temp = F.softmax(linear(temp),dim=1)
-        return temp
+        # linear = nn.Linear((input.shape[2]//8)**2,self.max_timestep).cuda()
+        linear1 = nn.Sequential([
+            nn.Linear((input.shape[2]//8)**2,128),
+            nn.Linear((128,32),
+            nn.Linear((32,self.hundred_num)
+        ]).cuda()
+        linear2 = nn.Sequential([
+            nn.Linear((input.shape[2]//8)**2,128),
+            nn.Linear((128,32),
+            nn.Linear((32,10)
+        ]).cuda()
+        linear3 = nn.Sequential([
+            nn.Linear((input.shape[2]//8)**2,128),
+            nn.Linear((128,32),
+            nn.Linear((32,10)
+        ]).cuda()
+        temp1 = F.softmax(linear1(temp),dim=1)
+        temp2 = F.softmax(linear2(temp),dim=1)
+        temp3 = F.softmax(linear3(temp),dim=1)
+        return temp1, temp2, temp3
 
 ##############################################################################
 # Classes
