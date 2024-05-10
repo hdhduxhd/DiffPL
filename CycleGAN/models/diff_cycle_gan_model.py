@@ -116,9 +116,9 @@ class DiffCycleGANModel(BaseModel):
         # specify the models you want to save to the disk. The training/test scripts will call <BaseModel.save_networks> and <BaseModel.load_networks>.
         if self.isTrain:
             # self.model_names = ['G_A', 'G_B', 'D_A', 'D_B', 'Denoise_A', 'Denoise_B']
-            self.model_names = ['G_A', 'G_B', 'D_A', 'D_B', 'G_N']
+            self.model_names = ['G_A', 'G_B', 'D_A', 'D_B', 'G_N', 'G_N_cup', 'G_N_disc']
         else:  # during test time, only load Gs
-            self.model_names = ['G_A', 'G_B', 'G_N']
+            self.model_names = ['G_A', 'G_B', 'G_N', 'G_N_cup', 'G_N_disc']
 
         # define networks (both Generators and discriminators)
         # The naming is different from those used in the paper.
@@ -128,6 +128,8 @@ class DiffCycleGANModel(BaseModel):
         self.netG_B = networks.define_G(opt.output_nc, opt.input_nc, opt.ngf, opt.netG, opt.norm,
                                         not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
         self.netG_N = networks.define_N(opt.input_nc, opt.ngf, opt.n_layers_D, opt.max_timestep, opt.norm, opt.init_type, opt.init_gain, self.gpu_ids)
+        self.netG_N_cup = networks.define_N(opt.input_nc, opt.ngf, opt.n_layers_D, opt.max_timestep, opt.norm, opt.init_type, opt.init_gain, self.gpu_ids)
+        self.netG_N_disc = networks.define_N(opt.input_nc, opt.ngf, opt.n_layers_D, opt.max_timestep, opt.norm, opt.init_type, opt.init_gain, self.gpu_ids)
         self.diffusion = GaussianDiffusion()
         # self.netDenoise_A = UNet(in_channel=opt.input_nc, out_channel=opt.input_nc).to(self.device)
         # self.netDenoise_B = UNet(in_channel=opt.output_nc, out_channel=opt.output_nc).to(self.device)
@@ -149,12 +151,12 @@ class DiffCycleGANModel(BaseModel):
             self.criterionIdt = torch.nn.L1Loss()
             # initialize optimizers; schedulers will be automatically created by function <BaseModel.setup>.
             # self.optimizer_G = torch.optim.Adam(itertools.chain(self.netG_A.parameters(), self.netG_B.parameters(), self.netDenoise_A.parameters(), self.netDenoise_B.parameters()), lr=opt.lr, betas=(opt.beta1, 0.999))
-            self.optimizer_G = torch.optim.Adam(itertools.chain(self.netG_A.parameters(), self.netG_B.parameters(), self.netG_N.parameters()), lr=opt.lr, betas=(opt.beta1, 0.999))
+            self.optimizer_G = torch.optim.Adam(itertools.chain(self.netG_A.parameters(), self.netG_B.parameters(), self.netG_N.parameters(), self.netG_N_cup.parameters(), self.netG_N_disc.parameters()), lr=opt.lr, betas=(opt.beta1, 0.999))
             self.optimizer_D = torch.optim.Adam(itertools.chain(self.netD_A.parameters(), self.netD_B.parameters()), lr=opt.lr, betas=(opt.beta1, 0.999))
             self.optimizers.append(self.optimizer_G)
             self.optimizers.append(self.optimizer_D)
 
-    def set_input(self, input):
+    def set_input(self, input, mode=0):
         """Unpack input data from the dataloader and perform necessary pre-processing steps.
 
         Parameters:
@@ -166,7 +168,12 @@ class DiffCycleGANModel(BaseModel):
         self.real_A = input['A' if AtoB else 'B'].to(self.device)
         self.real_B = input['B' if AtoB else 'A'].to(self.device)
         # logits = self.netG_N(self.real_B)
-        logits1, logits2, logits3 = self.netG_N(self.real_B)
+        if mode == 0:
+            logits1, logits2, logits3 = self.netG_N(self.real_B)
+        elif mode == 1:
+            logits1, logits2, logits3 = self.netG_N_cup(self.real_B)
+        else:
+            logits1, logits2, logits3 = self.netG_N_disc(self.real_B)
         # y = get_rep_outputs(logits, 0.5, True)
         y1 = get_rep_outputs(logits1, 0.5, True)
         y2 = get_rep_outputs(logits2, 0.5, True)
@@ -179,25 +186,42 @@ class DiffCycleGANModel(BaseModel):
         self.t = (y1 @ column_vector1.float()) * 100 + (y2 @ column_vector2.float()) * 10 + (y3 @ column_vector3.float())
         # self.image_paths = input['A_paths' if AtoB else 'B_paths']
     
-    def forward(self):
+    def forward(self, mode=0):
         # batch_size = self.real_A.shape[0]
         # self.t = torch.randint(0, 100, (batch_size,), device=self.device).long()
         """Run forward pass; called by both functions <optimize_parameters> and <test>."""
-        self.noise_real_A = torch.randn_like(self.real_A)
-        self.real_A_noise = self.diffusion.q_sample(self.real_A, self.t, noise=self.noise_real_A)
+        if mode == 0:
+            self.noise_real_A = torch.randn_like(self.real_A)
+            self.real_A_noise = self.diffusion.q_sample(self.real_A, self.t, noise=self.noise_real_A)
+        elif mode == 1:
+            self.noise_real_A = torch.randn_like(self.real_A[:,:1,...])
+            self.real_A_noise = torch.cat([self.diffusion.q_sample(self.real_A[:,:1,...], self.t, noise=self.noise_real_A), self.real_A[:,1:,...]], dim=1)
+        else:
+            self.noise_real_A = torch.randn_like(self.real_A[:,1:,...])
+            self.real_A_noise = torch.cat([self.real_A[:,:1,...], self.diffusion.q_sample(self.real_A[:,1:,...], self.t, noise=self.noise_real_A)], dim=1)
         # self.real_A_latent = self.netDenoise_A(self.real_A_noise, self.t)
         # self.fake_B = self.netG_A(torch.cat([self.real_A_noise, self.real_A_latent], dim=1))  # G_A(A)
         self.fake_B = self.netG_A(self.real_A_noise)  # G_A(A)
-        self.noise_fake_B = torch.randn_like(self.fake_B)
-        self.fake_B_noise = self.diffusion.q_sample(self.fake_B, self.t, noise=self.noise_fake_B)
+
+        if mode == 0:
+            self.noise_fake_B = torch.randn_like(self.fake_B)
+            self.fake_B_noise = self.diffusion.q_sample(self.fake_B, self.t, noise=self.noise_fake_B)
+        elif mode == 1:
+            self.noise_real_A = torch.randn_like(self.real_A[:,:1,...])
+            self.real_A_noise = torch.cat([self.diffusion.q_sample(self.real_A[:,:1,...], self.t, noise=self.noise_real_A), self.real_A[:,1:,...]], dim=1)
+        else:
+            self.noise_real_A = torch.randn_like(self.real_A[:,1:,...])
+            self.real_A_noise = torch.cat([self.real_A[:,:1,...], self.diffusion.q_sample(self.real_A[:,1:,...], self.t, noise=self.noise_real_A)], dim=1)
         # self.fake_B_latent = self.netDenoise_B(self.fake_B_noise, self.t)
         # self.rec_A = self.netG_B(torch.cat([self.fake_B_noise, self.fake_B_latent], dim=1))   # G_B(G_A(A))
         self.rec_A = self.netG_B(self.fake_B_noise)   # G_B(G_A(A))
+        
         self.noise_real_B = torch.randn_like(self.real_B)
         self.real_B_noise = self.diffusion.q_sample(self.real_B, self.t, noise=self.noise_real_B)
         # self.real_B_latent = self.netDenoise_B(self.real_B_noise, self.t)
         # self.fake_A = self.netG_B(torch.cat([self.real_B_noise, self.real_B_latent], dim=1))  # G_B(B)
         self.fake_A = self.netG_B(self.real_B_noise)  # G_B(B)
+        
         self.noise_fake_A = torch.randn_like(self.fake_A)
         self.fake_A_noise = self.diffusion.q_sample(self.fake_A, self.t, noise=self.noise_fake_A)
         # self.fake_A_latent = self.netDenoise_A(self.fake_A_noise, self.t)
