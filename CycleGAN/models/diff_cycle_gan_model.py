@@ -207,23 +207,37 @@ class DiffCycleGANModel(BaseModel):
             self.noise_fake_B = torch.randn_like(self.fake_B)
             self.fake_B_noise = self.diffusion.q_sample(self.fake_B, self.t, noise=self.noise_fake_B)
         elif mode == 1:
-            self.noise_real_A = torch.randn_like(self.real_A[:,:1,...])
-            self.real_A_noise = torch.cat([self.diffusion.q_sample(self.real_A[:,:1,...], self.t, noise=self.noise_real_A), self.real_A[:,1:,...]], dim=1)
+            self.noise_fake_B = torch.randn_like(self.fake_B[:,:1,...])
+            self.fake_B_noise = torch.cat([self.diffusion.q_sample(self.fake_B[:,:1,...], self.t, noise=self.noise_fake_B), self.fake_B[:,1:,...]], dim=1)
         else:
-            self.noise_real_A = torch.randn_like(self.real_A[:,1:,...])
-            self.real_A_noise = torch.cat([self.real_A[:,:1,...], self.diffusion.q_sample(self.real_A[:,1:,...], self.t, noise=self.noise_real_A)], dim=1)
+            self.noise_fake_B = torch.randn_like(self.fake_B[:,1:,...])
+            self.fake_B_noise = torch.cat([self.fake_B[:,:1,...], self.diffusion.q_sample(self.fake_B[:,1:,...], self.t, noise=self.noise_fake_B)], dim=1)
         # self.fake_B_latent = self.netDenoise_B(self.fake_B_noise, self.t)
         # self.rec_A = self.netG_B(torch.cat([self.fake_B_noise, self.fake_B_latent], dim=1))   # G_B(G_A(A))
         self.rec_A = self.netG_B(self.fake_B_noise)   # G_B(G_A(A))
-        
-        self.noise_real_B = torch.randn_like(self.real_B)
-        self.real_B_noise = self.diffusion.q_sample(self.real_B, self.t, noise=self.noise_real_B)
+
+        if mode == 0:
+            self.noise_real_B = torch.randn_like(self.real_B)
+            self.real_B_noise = self.diffusion.q_sample(self.real_B, self.t, noise=self.noise_real_B)
+        elif mode == 1:
+            self.noise_real_B = torch.randn_like(self.real_B[:,:1,...])
+            self.real_B_noise = torch.cat([self.diffusion.q_sample(self.real_B[:,:1,...], self.t, noise=self.noise_real_B), self.real_B[:,1:,...]], dim=1)
+        else:
+            self.noise_real_B = torch.randn_like(self.real_B[:,1:,...])
+            self.real_B_noise = torch.cat([self.real_B[:,:1,...], self.diffusion.q_sample(self.real_B[:,1:,...], self.t, noise=self.noise_real_B)], dim=1)
         # self.real_B_latent = self.netDenoise_B(self.real_B_noise, self.t)
         # self.fake_A = self.netG_B(torch.cat([self.real_B_noise, self.real_B_latent], dim=1))  # G_B(B)
         self.fake_A = self.netG_B(self.real_B_noise)  # G_B(B)
-        
-        self.noise_fake_A = torch.randn_like(self.fake_A)
-        self.fake_A_noise = self.diffusion.q_sample(self.fake_A, self.t, noise=self.noise_fake_A)
+
+        if mode == 0:
+            self.noise_fake_A = torch.randn_like(self.fake_A)
+            self.fake_A_noise = self.diffusion.q_sample(self.fake_A, self.t, noise=self.noise_fake_A)
+        elif mode == 1:
+            self.noise_fake_A = torch.randn_like(self.fake_A[:,:1,...])
+            self.fake_A_noise = torch.cat([self.diffusion.q_sample(self.fake_A[:,:1,...], self.t, noise=self.noise_fake_A), self.fake_A[:,1:,...]], dim=1)
+        else:
+            self.noise_fake_A = torch.randn_like(self.fake_A[:,1:,...])
+            self.fake_A_noise = torch.cat([self.fake_A[:,:1,...], self.diffusion.q_sample(self.fake_A[:,1:,...], self.t, noise=self.noise_fake_A)], dim=1)
         # self.fake_A_latent = self.netDenoise_A(self.fake_A_noise, self.t)
         # self.rec_B = self.netG_A(torch.cat([self.fake_A_noise, self.fake_A_latent], dim=1))   # G_A(G_B(B))
         self.rec_B = self.netG_A(self.fake_A_noise)   # G_A(G_B(B))
