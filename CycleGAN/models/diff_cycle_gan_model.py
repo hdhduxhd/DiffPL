@@ -256,8 +256,8 @@ class DiffCycleGANModel(BaseModel):
         t_disc = (y1 @ column_vector1.float()) * 100 + (y2 @ column_vector2.float()) * 10 + (y3 @ column_vector3.float())
         
         noise_input = torch.randn_like(input[:,:1,...])
-        input_noise = torch.cat([self.diffusion.q_sample(input[:,:1,...], self.t_cup, noise=noise_input),
-                                    self.diffusion.q_sample(input[:,1:,...], self.t_disc, noise=noise_input)], dim=1)
+        input_noise = torch.cat([self.diffusion.q_sample(input[:,:1,...], t_cup, noise=noise_input),
+                                    self.diffusion.q_sample(input[:,1:,...], t_disc, noise=noise_input)], dim=1)
         # input_latent = self.netDenoise_B(input_noise, torch.full((input.shape[0],), t, device=self.device, dtype=torch.long))
         if type1 == 'one':
             output1 = self.netG_B(input_noise)  # denoise one step
@@ -268,8 +268,8 @@ class DiffCycleGANModel(BaseModel):
         # noise_output1 = torch.randn_like(output1)
         # output1_noise = self.diffusion.q_sample(output1, t, noise=noise_output1)
         noise_output1 = torch.randn_like(output1[:,:1,...])
-        output1_noise = torch.cat([self.diffusion.q_sample(output1[:,:1,...], self.t_cup, noise=noise_output1),
-                                    self.diffusion.q_sample(output1[:,1:,...], self.t_disc, noise=noise_output1)], dim=1)
+        output1_noise = torch.cat([self.diffusion.q_sample(output1[:,:1,...], t_cup, noise=noise_output1),
+                                    self.diffusion.q_sample(output1[:,1:,...], t_disc, noise=noise_output1)], dim=1)
         # output1_latent = self.netDenoise_A(output1_noise, torch.full((input.shape[0],), t, device=self.device, dtype=torch.long))
         if type2 == 'one':
             output2 = self.netG_A(output1_noise)
@@ -277,7 +277,7 @@ class DiffCycleGANModel(BaseModel):
             output2 = self.diffusion.sample(self.netDenoise_A, img=output1_noise, t=t)[-1]
             output2 = torch.from_numpy(output2).to(self.device)
         
-        return output1, output2, t  #refine, recon
+        return output1, output2, t_cup, t_disc  #refine, recon
 
     # def compute_visuals(self):
     #     self.visual_names.extend(['fake_B_sample', 'rec_A_sample', 'fake_A_sample', 'rec_B_sample'])
