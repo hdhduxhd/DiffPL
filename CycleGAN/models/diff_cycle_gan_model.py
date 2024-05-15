@@ -229,9 +229,12 @@ class DiffCycleGANModel(BaseModel):
         # self.rec_B = self.netG_A(torch.cat([self.fake_A_noise, self.fake_A_latent], dim=1))   # G_A(G_B(B))
         self.rec_B = self.netG_A(self.fake_A_noise)   # G_A(G_B(B))
 
-        print(self.real_B.min(),' ',self.real_B.max())
-        print(self.real_B_noise.min(),' ',self.real_B_noise.max())
-        print(self.fake_A.min(),' ',self.fake_A.max())
+        print("real_B:", self.real_B.min(),' ',self.real_B.max())
+        print("real_B_noise:", self.real_B_noise.min(),' ',self.real_B_noise.max())
+        print("fake_A", self.fake_A.min(),' ',self.fake_A.max())
+        print("real_A:", self.real_A.min(),' ',self.real_A.max())
+        print("real_A_noise:", self.real_A_noise.min(),' ',self.real_A_noise.max())
+        print("fake_B", self.fake_B.min(),' ',self.fake_B.max())
         
 
     def get_output_B(self, input, type1='one', type2='one'):
