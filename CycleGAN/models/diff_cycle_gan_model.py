@@ -279,7 +279,7 @@ class DiffCycleGANModel(BaseModel):
             output2 = self.diffusion.sample(self.netDenoise_A, img=output1_noise, t=t)[-1]
             output2 = torch.from_numpy(output2).to(self.device)
         
-        return output1, output2, t_cup, t_disc  #refine, recon
+        return output1, output2, t  #refine, recon
 
     # def compute_visuals(self):
     #     self.visual_names.extend(['fake_B_sample', 'rec_A_sample', 'fake_A_sample', 'rec_B_sample'])
