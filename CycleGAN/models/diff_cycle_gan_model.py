@@ -11,24 +11,24 @@ from CycleGAN.models import networks
 from ddpm.new_diffusion import *
 from ddpm.unet import UNet
 
-# -ln(circularity)
-# def circularity(y_pred):
-#     """
-#     y_pred: BxHxW
-#     """
-#     x = y_pred[:, 1:, :] - y_pred[:, :-1, :]  # horizontal and vertical directions
-#     y = y_pred[:, :, 1:] - y_pred[:, :, :-1]
+-ln(circularity)
+def circularity(y_pred):
+    """
+    y_pred: BxHxW
+    """
+    x = y_pred[:, 1:, :] - y_pred[:, :-1, :]  # horizontal and vertical directions
+    y = y_pred[:, :, 1:] - y_pred[:, :, :-1]
 
-#     delta_x = x[:, :, 1:] ** 2
-#     delta_y = y[:, 1:, :] ** 2
-#     delta_u = torch.abs(delta_x + delta_y)
+    delta_x = x[:, :, 1:] ** 2
+    delta_y = y[:, 1:, :] ** 2
+    delta_u = torch.abs(delta_x + delta_y)
 
-#     epsilon = 0.00000001  # a small value to avoid division by zero in practice
-#     length = torch.sqrt(delta_u + epsilon).sum(dim=[1, 2])
-#     area = y_pred.sum(dim=[1, 2])
+    epsilon = 0.00000001  # a small value to avoid division by zero in practice
+    length = torch.sqrt(delta_u + epsilon).sum(dim=[1, 2])
+    area = y_pred.sum(dim=[1, 2])
 
-#     compactness_loss = torch.sum(-1 * torch.log((area * 4 * 3.1415926 + epsilon) / (length ** 2)))
-#     return compactness_loss
+    compactness_loss = torch.sum(-1 * torch.log((area * 4 * 3.1415926 + epsilon) / (length ** 2)))
+    return compactness_loss
 
 # 1/circularity
 # def circularity(y_pred):
@@ -50,8 +50,8 @@ from ddpm.unet import UNet
 #     compactness_loss = torch.sum(length ** 2 / (area * 4 * 3.1415926))
 #     return compactness_loss
 
-# def circularity_2label(y_pred):
-#     return (circularity(y_pred[:,0,...]) + circularity(y_pred[:,1,...])) / 2
+def circularity_2label(y_pred):
+    return (circularity(y_pred[:,0,...]) + circularity(y_pred[:,1,...])) / 2
 
 class DiffCycleGANModel(BaseModel):
     """
@@ -104,7 +104,7 @@ class DiffCycleGANModel(BaseModel):
         BaseModel.__init__(self, opt)
         # specify the training losses you want to print out. The training/test scripts will call <BaseModel.get_current_losses>
         # self.loss_names = ['D_A', 'G_A', 'cycle_A', 'idt_A', 'D_B', 'G_B', 'cycle_B', 'idt_B', 'diff']
-        self.loss_names = ['D_A', 'G_A', 'cycle_A', 'idt_A', 'D_B', 'G_B', 'cycle_B', 'idt_B']
+        self.loss_names = ['D_A', 'G_A', 'cycle_A', 'idt_A', 'D_B', 'G_B', 'cycle_B', 'idt_B', 'circularity']
         # specify the images you want to save/display. The training/test scripts will call <BaseModel.get_current_visuals>
         visual_names_A = ['real_A', 'fake_B', 'rec_A', 'real_A_noise', 'fake_B_noise']
         visual_names_B = ['real_B', 'fake_A', 'rec_B', 'real_B_noise', 'fake_A_noise']
@@ -127,9 +127,9 @@ class DiffCycleGANModel(BaseModel):
                                         not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
         self.netG_B = networks.define_G(opt.output_nc, opt.input_nc, opt.ngf, opt.netG, opt.norm,
                                         not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
-        # self.netG_N = networks.define_N(opt.input_nc, opt.ngf, opt.n_layers_D, opt.max_timestep, opt.norm, opt.init_type, opt.init_gain, self.gpu_ids)
-        self.netG_N_cup = networks.define_N(opt.input_nc, opt.ngf, opt.n_layers_D, opt.max_timestep, opt.norm, opt.init_type, opt.init_gain, self.gpu_ids)
-        self.netG_N_disc = networks.define_N(opt.input_nc, opt.ngf, opt.n_layers_D, opt.max_timestep, opt.norm, opt.init_type, opt.init_gain, self.gpu_ids)
+        self.netG_N = networks.define_N(opt.input_nc, opt.ngf, opt.n_layers_D, opt.max_timestep, opt.norm, opt.init_type, opt.init_gain, self.gpu_ids)
+        # self.netG_N_cup = networks.define_N(opt.input_nc, opt.ngf, opt.n_layers_D, opt.max_timestep, opt.norm, opt.init_type, opt.init_gain, self.gpu_ids)
+        # self.netG_N_disc = networks.define_N(opt.input_nc, opt.ngf, opt.n_layers_D, opt.max_timestep, opt.norm, opt.init_type, opt.init_gain, self.gpu_ids)
         self.diffusion = GaussianDiffusion()
         # self.netDenoise_A = UNet(in_channel=opt.input_nc, out_channel=opt.input_nc).to(self.device)
         # self.netDenoise_B = UNet(in_channel=opt.output_nc, out_channel=opt.output_nc).to(self.device)
@@ -151,7 +151,7 @@ class DiffCycleGANModel(BaseModel):
             self.criterionIdt = torch.nn.L1Loss()
             # initialize optimizers; schedulers will be automatically created by function <BaseModel.setup>.
             # self.optimizer_G = torch.optim.Adam(itertools.chain(self.netG_A.parameters(), self.netG_B.parameters(), self.netDenoise_A.parameters(), self.netDenoise_B.parameters()), lr=opt.lr, betas=(opt.beta1, 0.999))
-            self.optimizer_G = torch.optim.Adam(itertools.chain(self.netG_A.parameters(), self.netG_B.parameters(), self.netG_N_cup.parameters(), self.netG_N_disc.parameters()), lr=opt.lr, betas=(opt.beta1, 0.999))
+            self.optimizer_G = torch.optim.Adam(itertools.chain(self.netG_A.parameters(), self.netG_B.parameters(), self.netG_N.parameters()), lr=opt.lr, betas=(opt.beta1, 0.999))
             self.optimizer_D = torch.optim.Adam(itertools.chain(self.netD_A.parameters(), self.netD_B.parameters()), lr=opt.lr, betas=(opt.beta1, 0.999))
             self.optimizers.append(self.optimizer_G)
             self.optimizers.append(self.optimizer_D)
@@ -168,7 +168,7 @@ class DiffCycleGANModel(BaseModel):
         self.real_A = input['A' if AtoB else 'B'].to(self.device)
         self.real_B = input['B' if AtoB else 'A'].to(self.device)
         # logits = self.netG_N(self.real_B)
-        logits1, logits2, logits3 = self.netG_N_cup(self.real_B)
+        logits1, logits2, logits3 = self.netG_N(self.real_B)
         # y = get_rep_outputs(logits, 0.5, True)
         y1 = get_rep_outputs(logits1, 0.5, True)
         y2 = get_rep_outputs(logits2, 0.5, True)
@@ -177,16 +177,16 @@ class DiffCycleGANModel(BaseModel):
         column_vector1 = torch.arange(0, self.opt.max_timestep//100).view(self.opt.max_timestep//100, 1).cuda()
         column_vector2 = torch.arange(0, 10).view(10, 1).cuda()
         column_vector3 = torch.arange(1, 10).view(9, 1).cuda()
-        self.t_cup = (y1 @ column_vector1.float()) * 100 + (y2 @ column_vector2.float()) * 10 + (y3 @ column_vector3.float())
+        self.t = (y1 @ column_vector1.float()) * 100 + (y2 @ column_vector2.float()) * 10 + (y3 @ column_vector3.float())
 
-        logits1, logits2, logits3 = self.netG_N_disc(self.real_B)
-        y1 = get_rep_outputs(logits1, 0.5, True)
-        y2 = get_rep_outputs(logits2, 0.5, True)
-        y3 = get_rep_outputs(logits3, 0.5, True)
-        column_vector1 = torch.arange(0, self.opt.max_timestep//100).view(self.opt.max_timestep//100, 1).cuda()
-        column_vector2 = torch.arange(0, 10).view(10, 1).cuda()
-        column_vector3 = torch.arange(1, 10).view(9, 1).cuda()
-        self.t_disc = (y1 @ column_vector1.float()) * 100 + (y2 @ column_vector2.float()) * 10 + (y3 @ column_vector3.float())
+        # logits1, logits2, logits3 = self.netG_N_disc(self.real_B)
+        # y1 = get_rep_outputs(logits1, 0.5, True)
+        # y2 = get_rep_outputs(logits2, 0.5, True)
+        # y3 = get_rep_outputs(logits3, 0.5, True)
+        # column_vector1 = torch.arange(0, self.opt.max_timestep//100).view(self.opt.max_timestep//100, 1).cuda()
+        # column_vector2 = torch.arange(0, 10).view(10, 1).cuda()
+        # column_vector3 = torch.arange(1, 10).view(9, 1).cuda()
+        # self.t_disc = (y1 @ column_vector1.float()) * 100 + (y2 @ column_vector2.float()) * 10 + (y3 @ column_vector3.float())
         # self.image_paths = input['A_paths' if AtoB else 'B_paths']
     
     def forward(self):
@@ -202,29 +202,29 @@ class DiffCycleGANModel(BaseModel):
         # self.fake_B = self.netG_A(torch.cat([self.real_A_noise, self.real_A_latent], dim=1))  # G_A(A)
         self.fake_B = self.netG_A(self.real_A_noise)  # G_A(A)
 
-        # self.noise_fake_B = torch.randn_like(self.fake_B)
-        # self.fake_B_noise = self.diffusion.q_sample(self.fake_B, self.t, noise=self.noise_fake_B)
-        self.noise_fake_B = torch.randn_like(self.fake_B[:,:1,...])
-        self.fake_B_noise = torch.cat([self.diffusion.q_sample(self.fake_B[:,:1,...], self.t_cup, noise=self.noise_fake_B),
-                                        self.diffusion.q_sample(self.fake_B[:,1:,...], self.t_disc, noise=self.noise_fake_B)], dim=1)
+        self.noise_fake_B = torch.randn_like(self.fake_B)
+        self.fake_B_noise = self.diffusion.q_sample(self.fake_B, self.t, noise=self.noise_fake_B)
+        # self.noise_fake_B = torch.randn_like(self.fake_B[:,:1,...])
+        # self.fake_B_noise = torch.cat([self.diffusion.q_sample(self.fake_B[:,:1,...], self.t_cup, noise=self.noise_fake_B),
+        #                                 self.diffusion.q_sample(self.fake_B[:,1:,...], self.t_disc, noise=self.noise_fake_B)], dim=1)
         # self.fake_B_latent = self.netDenoise_B(self.fake_B_noise, self.t)
         # self.rec_A = self.netG_B(torch.cat([self.fake_B_noise, self.fake_B_latent], dim=1))   # G_B(G_A(A))
         self.rec_A = self.netG_B(self.fake_B_noise)   # G_B(G_A(A))
 
-        # self.noise_real_B = torch.randn_like(self.real_B)
-        # self.real_B_noise = self.diffusion.q_sample(self.real_B, self.t, noise=self.noise_real_B)
-        self.noise_real_B = torch.randn_like(self.real_B[:,:1,...])
-        self.real_B_noise = torch.cat([self.diffusion.q_sample(self.real_B[:,:1,...], self.t_cup, noise=self.noise_real_B),
-                                        self.diffusion.q_sample(self.real_B[:,1:,...], self.t_disc, noise=self.noise_real_B)], dim=1)
+        self.noise_real_B = torch.randn_like(self.real_B)
+        self.real_B_noise = self.diffusion.q_sample(self.real_B, self.t, noise=self.noise_real_B)
+        # self.noise_real_B = torch.randn_like(self.real_B[:,:1,...])
+        # self.real_B_noise = torch.cat([self.diffusion.q_sample(self.real_B[:,:1,...], self.t_cup, noise=self.noise_real_B),
+        #                                 self.diffusion.q_sample(self.real_B[:,1:,...], self.t_disc, noise=self.noise_real_B)], dim=1)
         # self.real_B_latent = self.netDenoise_B(self.real_B_noise, self.t)
         # self.fake_A = self.netG_B(torch.cat([self.real_B_noise, self.real_B_latent], dim=1))  # G_B(B)
         self.fake_A = self.netG_B(self.real_B_noise)  # G_B(B)
 
-        # self.noise_fake_A = torch.randn_like(self.fake_A)
-        # self.fake_A_noise = self.diffusion.q_sample(self.fake_A, self.t, noise=self.noise_fake_A)
-        self.noise_fake_A = torch.randn_like(self.fake_A[:,:1,...])
-        self.fake_A_noise = torch.cat([self.diffusion.q_sample(self.fake_A[:,:1,...], self.t_cup, noise=self.noise_fake_A),
-                                        self.diffusion.q_sample(self.fake_A[:,1:,...], self.t_disc, noise=self.noise_fake_A)], dim=1)
+        self.noise_fake_A = torch.randn_like(self.fake_A)
+        self.fake_A_noise = self.diffusion.q_sample(self.fake_A, self.t, noise=self.noise_fake_A)
+        # self.noise_fake_A = torch.randn_like(self.fake_A[:,:1,...])
+        # self.fake_A_noise = torch.cat([self.diffusion.q_sample(self.fake_A[:,:1,...], self.t_cup, noise=self.noise_fake_A),
+        #                                 self.diffusion.q_sample(self.fake_A[:,1:,...], self.t_disc, noise=self.noise_fake_A)], dim=1)
         # self.fake_A_latent = self.netDenoise_A(self.fake_A_noise, self.t)
         # self.rec_B = self.netG_A(torch.cat([self.fake_A_noise, self.fake_A_latent], dim=1))   # G_A(G_B(B))
         self.rec_B = self.netG_A(self.fake_A_noise)   # G_A(G_B(B))
@@ -237,27 +237,29 @@ class DiffCycleGANModel(BaseModel):
         # y = get_rep_outputs(logits, 0.5, True)
         # column_vector = torch.arange(self.opt.shift+1, self.opt.shift+self.opt.max_timestep+1).view(self.opt.max_timestep, 1).cuda()
         # t = y @ column_vector.float()
-        logits1, logits2, logits3 = self.netG_N_cup(input)
+        logits1, logits2, logits3 = self.netG_N(input)
         y1 = get_rep_outputs(logits1, 0.5, True)
         y2 = get_rep_outputs(logits2, 0.5, True)
         y3 = get_rep_outputs(logits3, 0.5, True)
         column_vector1 = torch.arange(0, self.opt.max_timestep//100).view(self.opt.max_timestep//100, 1).cuda()
         column_vector2 = torch.arange(0, 10).view(10, 1).cuda()
         column_vector3 = torch.arange(1, 10).view(9, 1).cuda()
-        t_cup = (y1 @ column_vector1.float()) * 100 + (y2 @ column_vector2.float()) * 10 + (y3 @ column_vector3.float())
+        t = (y1 @ column_vector1.float()) * 100 + (y2 @ column_vector2.float()) * 10 + (y3 @ column_vector3.float())
 
-        logits1, logits2, logits3 = self.netG_N_disc(input)
-        y1 = get_rep_outputs(logits1, 0.5, True)
-        y2 = get_rep_outputs(logits2, 0.5, True)
-        y3 = get_rep_outputs(logits3, 0.5, True)
-        column_vector1 = torch.arange(0, self.opt.max_timestep//100).view(self.opt.max_timestep//100, 1).cuda()
-        column_vector2 = torch.arange(0, 10).view(10, 1).cuda()
-        column_vector3 = torch.arange(1, 10).view(9, 1).cuda()
-        t_disc = (y1 @ column_vector1.float()) * 100 + (y2 @ column_vector2.float()) * 10 + (y3 @ column_vector3.float())
-        
-        noise_input = torch.randn_like(input[:,:1,...])
-        input_noise = torch.cat([self.diffusion.q_sample(input[:,:1,...], t_cup, noise=noise_input),
-                                    self.diffusion.q_sample(input[:,1:,...], t_disc, noise=noise_input)], dim=1)
+        # logits1, logits2, logits3 = self.netG_N_disc(input)
+        # y1 = get_rep_outputs(logits1, 0.5, True)
+        # y2 = get_rep_outputs(logits2, 0.5, True)
+        # y3 = get_rep_outputs(logits3, 0.5, True)
+        # column_vector1 = torch.arange(0, self.opt.max_timestep//100).view(self.opt.max_timestep//100, 1).cuda()
+        # column_vector2 = torch.arange(0, 10).view(10, 1).cuda()
+        # column_vector3 = torch.arange(1, 10).view(9, 1).cuda()
+        # t_disc = (y1 @ column_vector1.float()) * 100 + (y2 @ column_vector2.float()) * 10 + (y3 @ column_vector3.float())
+
+        noise_input = torch.randn_like(input)
+        input_noise = self.diffusion.q_sample(input, t, noise=noise_input)
+        # noise_input = torch.randn_like(input[:,:1,...])
+        # input_noise = torch.cat([self.diffusion.q_sample(input[:,:1,...], t_cup, noise=noise_input),
+        #                             self.diffusion.q_sample(input[:,1:,...], t_disc, noise=noise_input)], dim=1)
         # input_latent = self.netDenoise_B(input_noise, torch.full((input.shape[0],), t, device=self.device, dtype=torch.long))
         if type1 == 'one':
             output1 = self.netG_B(input_noise)  # denoise one step
@@ -265,11 +267,11 @@ class DiffCycleGANModel(BaseModel):
             output1 = self.diffusion.sample(self.netDenoise_B, img=input_noise, t=t)[-1] #denoise step by step
             output1 = torch.from_numpy(output1).to(self.device)
         
-        # noise_output1 = torch.randn_like(output1)
-        # output1_noise = self.diffusion.q_sample(output1, t, noise=noise_output1)
-        noise_output1 = torch.randn_like(output1[:,:1,...])
-        output1_noise = torch.cat([self.diffusion.q_sample(output1[:,:1,...], t_cup, noise=noise_output1),
-                                    self.diffusion.q_sample(output1[:,1:,...], t_disc, noise=noise_output1)], dim=1)
+        noise_output1 = torch.randn_like(output1)
+        output1_noise = self.diffusion.q_sample(output1, t, noise=noise_output1)
+        # noise_output1 = torch.randn_like(output1[:,:1,...])
+        # output1_noise = torch.cat([self.diffusion.q_sample(output1[:,:1,...], t_cup, noise=noise_output1),
+        #                             self.diffusion.q_sample(output1[:,1:,...], t_disc, noise=noise_output1)], dim=1)
         # output1_latent = self.netDenoise_A(output1_noise, torch.full((input.shape[0],), t, device=self.device, dtype=torch.long))
         if type2 == 'one':
             output2 = self.netG_A(output1_noise)
@@ -382,8 +384,8 @@ class DiffCycleGANModel(BaseModel):
         # self.loss_diff_fake_A = F.mse_loss(self.fake_A_latent, self.fake_A_noise) 
         # self.loss_diff = (self.loss_diff_real_A + self.loss_diff_fake_B + self.loss_diff_real_B + self.loss_diff_fake_A) * lambda_N
         # combined loss and calculate gradients
-        # self.loss_circulrity = circularity_2label(self.rec_B)
-        self.loss_G = self.loss_G_A + self.loss_G_B + self.loss_cycle_A + self.loss_cycle_B + self.loss_idt_A + self.loss_idt_B
+        self.loss_circularity = circularity_2label(self.rec_B)
+        self.loss_G = self.loss_G_A + self.loss_G_B + self.loss_cycle_A + self.loss_cycle_B + self.loss_idt_A + self.loss_idt_B + self.loss_circularity
         self.loss_G.backward()
         
     def optimize_parameters(self):
