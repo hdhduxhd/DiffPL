@@ -116,9 +116,9 @@ class DiffCycleGANModel(BaseModel):
         # specify the models you want to save to the disk. The training/test scripts will call <BaseModel.save_networks> and <BaseModel.load_networks>.
         if self.isTrain:
             # self.model_names = ['G_A', 'G_B', 'D_A', 'D_B', 'Denoise_A', 'Denoise_B']
-            self.model_names = ['G_A', 'G_B', 'D_A', 'D_B', 'G_N_cup', 'G_N_disc']
+            self.model_names = ['G_A', 'G_B', 'D_A', 'D_B', 'G_N']
         else:  # during test time, only load Gs
-            self.model_names = ['G_A', 'G_B', 'G_N_cup', 'G_N_disc']
+            self.model_names = ['G_A', 'G_B', 'G_N']
 
         # define networks (both Generators and discriminators)
         # The naming is different from those used in the paper.
@@ -193,11 +193,11 @@ class DiffCycleGANModel(BaseModel):
         # batch_size = self.real_A.shape[0]
         # self.t = torch.randint(0, 100, (batch_size,), device=self.device).long()
         """Run forward pass; called by both functions <optimize_parameters> and <test>."""
-        # self.noise_real_A = torch.randn_like(self.real_A)
-        # self.real_A_noise = self.diffusion.q_sample(self.real_A, self.t, noise=self.noise_real_A)
-        self.noise_real_A = torch.randn_like(self.real_A[:,:1,...])
-        self.real_A_noise = torch.cat([self.diffusion.q_sample(self.real_A[:,:1,...], self.t_cup, noise=self.noise_real_A),
-                                        self.diffusion.q_sample(self.real_A[:,1:,...], self.t_disc, noise=self.noise_real_A)], dim=1)
+        self.noise_real_A = torch.randn_like(self.real_A)
+        self.real_A_noise = self.diffusion.q_sample(self.real_A, self.t, noise=self.noise_real_A)
+        # self.noise_real_A = torch.randn_like(self.real_A[:,:1,...])
+        # self.real_A_noise = torch.cat([self.diffusion.q_sample(self.real_A[:,:1,...], self.t_cup, noise=self.noise_real_A),
+        #                                 self.diffusion.q_sample(self.real_A[:,1:,...], self.t_disc, noise=self.noise_real_A)], dim=1)
         # self.real_A_latent = self.netDenoise_A(self.real_A_noise, self.t)
         # self.fake_B = self.netG_A(torch.cat([self.real_A_noise, self.real_A_latent], dim=1))  # G_A(A)
         self.fake_B = self.netG_A(self.real_A_noise)  # G_A(A)
