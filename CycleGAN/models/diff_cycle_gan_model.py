@@ -11,7 +11,7 @@ from CycleGAN.models import networks
 from ddpm.new_diffusion import *
 from ddpm.unet import UNet
 
--ln(circularity)
+# -ln(circularity)
 def circularity(y_pred):
     """
     y_pred: BxHxW
