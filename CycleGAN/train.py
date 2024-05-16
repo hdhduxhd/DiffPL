@@ -60,7 +60,7 @@ if __name__ == '__main__':
     composed_transforms_ts = transforms.Compose([
         # tr.RandomCrop(512),
         tr.Resize(512),
-        tr.Normalize_tf(),
+        tr.Normalize_tf_label(),
         tr.ToTensor()
     ])
 
