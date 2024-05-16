@@ -13,6 +13,7 @@ from ddpm.unet import UNet
 
 # -ln(circularity)
 def circularity(y_pred):
+    y_pred = (y_pred + 1) / 2
     """
     y_pred: BxHxW
     """
@@ -286,7 +287,9 @@ class DiffCycleGANModel(BaseModel):
         else:
             output2 = self.diffusion.sample(self.netDenoise_A, img=output1_noise, t=t)[-1]
             output2 = torch.from_numpy(output2).to(self.device)
-        
+
+        output1 = (output1 + 1) / 2
+        output2 = (output2 + 1) / 2
         return output1, output2, t  #refine, recon
 
     # def compute_visuals(self):
