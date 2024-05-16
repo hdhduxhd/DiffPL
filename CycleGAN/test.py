@@ -98,7 +98,6 @@ if __name__ == '__main__':
         temp = {"image":target_image+1, "ground_truth":target_label, "pseudo_label":target_pl, "prob_pseudo_label":target_prob_pl}
         # target_pl = F.interpolate(target_pl.float(), size=(256, 256), mode='bilinear', align_corners=False)
         # target_prob_pl = F.interpolate(target_prob_pl, size=(256, 256), mode='bilinear', align_corners=False)
-        target_prob_pl = target_prob_pl * 2 -1
         target_label = target_label.to(device)
         target_pl = target_pl.to(device)
         target_prob_pl = target_prob_pl.to(device)
