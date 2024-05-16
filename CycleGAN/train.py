@@ -60,7 +60,7 @@ if __name__ == '__main__':
     composed_transforms_ts = transforms.Compose([
         # tr.RandomCrop(512),
         tr.Resize(512),
-        tr.Normalize_tf_label(),
+        tr.Normalize_tf(),
         tr.ToTensor()
     ])
 
@@ -114,7 +114,6 @@ if __name__ == '__main__':
 
             # Resize target_pl to 1x2x256x256
             # target_pl = F.interpolate(target_pl, size=(256, 256), mode='bilinear', align_corners=False)
-            target_pl = target_pl * 2 -1
             data = {"A": source_label.float(), "B": target_pl}
             iter_start_time = time.time()  # timer for computation per iteration
             if total_iters % opt.print_freq == 0:
@@ -151,7 +150,6 @@ if __name__ == '__main__':
                 target_prob_pl = torch.stack([torch.from_numpy(refine_prob_dic.get(i)) for i in target_img_name])
                 # target_prob_pl = F.interpolate(target_prob_pl, size=(256, 256), mode='bilinear', align_corners=False)
                 target_label = target_label.to(device)
-                target_label = (target_label+1)/2
                 target_prob_pl = target_prob_pl.to(device)
                 refine_target_new_pl, recon_target_new_pl, _ = model.get_output_B(target_prob_pl, type1='one', type2='one')
                 refine_target_new_pl[refine_target_new_pl > 0.75] = 1
