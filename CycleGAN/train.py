@@ -114,6 +114,7 @@ if __name__ == '__main__':
 
             # Resize target_pl to 1x2x256x256
             # target_pl = F.interpolate(target_pl, size=(256, 256), mode='bilinear', align_corners=False)
+            target_pl = target_pl * 2 -1
             data = {"A": source_label.float(), "B": target_pl}
             print("source_label:", source_label.min(), source_label.max())
             print("target_pl:", target_pl.min(), target_pl.max())
