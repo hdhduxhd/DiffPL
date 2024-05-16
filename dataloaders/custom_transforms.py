@@ -466,6 +466,43 @@ class Normalize_tf(object):
                 'img_name': name
                }
 
+class Normalize_tf_label(object):
+    """Normalize a tensor image with mean and standard deviation.
+    Args:
+        mean (tuple): means for each channel.
+        std (tuple): standard deviations for each channel.
+    """
+    def __init__(self, mean=(0., 0., 0.), std=(1., 1., 1.)):
+        self.mean = mean
+        self.std = std
+        self.get_boundary = GetBoundary()
+
+    def __call__(self, sample):
+        img = np.array(sample['image']).astype(np.float32)
+        __mask = np.array(sample['label']).astype(np.uint8)
+        name = sample['img_name']
+        img /= 127.5
+        img -= 1.0
+        _mask = np.zeros([__mask.shape[0], __mask.shape[1]])
+        _mask[__mask > 200] = 255
+        _mask[(__mask > 50) & (__mask < 201)] = 128
+
+        __mask[_mask == 0] = 2
+        __mask[_mask == 255] = 0
+        __mask[_mask == 128] = 1
+
+        mask = to_multilabel(__mask)
+        boundary = self.get_boundary(mask) * 255
+        boundary = ndimage.gaussian_filter(boundary, sigma=3) / 255.0
+        boundary = np.expand_dims(boundary, -1)
+
+        mask = mask*2-1
+
+        return {'image': img,
+                'map': mask,
+                'boundary': boundary,
+                'img_name': name
+               }
 
 class Normalize_cityscapes(object):
     """Normalize a tensor image with mean and standard deviation.
