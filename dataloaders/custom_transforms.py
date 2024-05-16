@@ -533,6 +533,7 @@ class ToTensor(object):
         # swap color axis because
         # numpy image: H x W x C
         # torch image: C X H X W
+        print("sample[map]:", sample['map'].min(), sample['map'].max())
         img = np.array(sample['image']).astype(np.float32).transpose((2, 0, 1))
         map = np.array(sample['map']).astype(np.uint8).transpose((2, 0, 1))
         boundary = np.array(sample['boundary']).astype(np.float32).transpose((2, 0, 1))
