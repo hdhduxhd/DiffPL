@@ -496,9 +496,7 @@ class Normalize_tf_label(object):
         boundary = ndimage.gaussian_filter(boundary, sigma=3) / 255.0
         boundary = np.expand_dims(boundary, -1)
 
-        print("before:", mask.min(), mask.max())
         mask = mask*2-1
-        print("after:", mask.min(), mask.max())
 
         return {'image': img,
                 'map': mask,
@@ -533,7 +531,6 @@ class ToTensor(object):
         # swap color axis because
         # numpy image: H x W x C
         # torch image: C X H X W
-        print("sample[map]:", sample['map'].min(), sample['map'].max())
         img = np.array(sample['image']).astype(np.float32).transpose((2, 0, 1))
         map = np.array(sample['map']).astype(np.float32).transpose((2, 0, 1))
         boundary = np.array(sample['boundary']).astype(np.float32).transpose((2, 0, 1))
@@ -541,8 +538,6 @@ class ToTensor(object):
         img = torch.from_numpy(img).float()
         map = torch.from_numpy(map).float()
         boundary = torch.from_numpy(boundary).float()
-
-        print("ToTensor:", map.min(), map.max())
 
         return {'image': img,
                 'map': map,
