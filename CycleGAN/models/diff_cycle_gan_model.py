@@ -388,7 +388,8 @@ class DiffCycleGANModel(BaseModel):
         # self.loss_diff_fake_A = F.mse_loss(self.fake_A_latent, self.fake_A_noise) 
         # self.loss_diff = (self.loss_diff_real_A + self.loss_diff_fake_B + self.loss_diff_real_B + self.loss_diff_fake_A) * lambda_N
         # combined loss and calculate gradients
-        self.loss_circularity = circularity_2label(self.rec_B)
+        # self.loss_circularity = circularity_2label(self.rec_B)
+        self.loss_circularity = 0
         self.loss_G = self.loss_G_A + self.loss_G_B + self.loss_cycle_A + self.loss_cycle_B + self.loss_idt_A + self.loss_idt_B + self.loss_circularity
         self.loss_G.backward()
         
