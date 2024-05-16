@@ -116,8 +116,6 @@ if __name__ == '__main__':
             # target_pl = F.interpolate(target_pl, size=(256, 256), mode='bilinear', align_corners=False)
             target_pl = target_pl * 2 -1
             data = {"A": source_label.float(), "B": target_pl}
-            print("source_label:", source_label.min(), source_label.max())
-            print("target_pl:", target_pl.min(), target_pl.max())
             iter_start_time = time.time()  # timer for computation per iteration
             if total_iters % opt.print_freq == 0:
                 t_data = iter_start_time - iter_data_time
