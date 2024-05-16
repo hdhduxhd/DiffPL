@@ -496,7 +496,9 @@ class Normalize_tf_label(object):
         boundary = ndimage.gaussian_filter(boundary, sigma=3) / 255.0
         boundary = np.expand_dims(boundary, -1)
 
+        print("before:", mask.min(), mask.max())
         mask = mask*2-1
+        print("after:", mask.min(), mask.max())
 
         return {'image': img,
                 'map': mask,
