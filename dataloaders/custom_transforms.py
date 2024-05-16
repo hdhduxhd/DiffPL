@@ -541,6 +541,8 @@ class ToTensor(object):
         map = torch.from_numpy(map).float()
         boundary = torch.from_numpy(boundary).float()
 
+        print("ToTensor:", map.min(), map.max())
+
         return {'image': img,
                 'map': map,
                 'boundary': boundary,
