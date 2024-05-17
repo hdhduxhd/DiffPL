@@ -71,7 +71,6 @@ if __name__ == '__main__':
         target_label = target_label.to(device)
         target_pl = target_pl.to(device)
         target_prob_pl = target_prob_pl.to(device)
-        target_prob_pl = target_prob_pl * 2 - 1
         _, target_new_pl, t = model.get_output_B(target_prob_pl, type1='one', type2='one')
 
         for i in range(target_new_pl.shape[0]):
