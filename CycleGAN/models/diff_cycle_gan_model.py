@@ -180,7 +180,7 @@ class DiffCycleGANModel(BaseModel):
         column_vector1 = torch.arange(0, self.opt.max_timestep//100).view(self.opt.max_timestep//100, 1).cuda()
         column_vector2 = torch.arange(0, 10).view(10, 1).cuda()
         column_vector3 = torch.arange(1, 10).view(9, 1).cuda()
-        self.t = (y1 @ column_vector1.float()) * 100 + (y2 @ column_vector2.float()) * 10 + (y3 @ column_vector3.float())
+        self.t = (y1.permute(0,2,3,1) @ column_vector1.float()) * 100 + (y2.permute(0,2,3,1) @ column_vector2.float()) * 10 + (y3.permute(0,2,3,1) @ column_vector3.float())
         print(self.t)
 
         # logits1, logits2, logits3 = self.netG_N_disc(self.real_B)
