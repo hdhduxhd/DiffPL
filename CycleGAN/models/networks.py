@@ -313,28 +313,22 @@ class GetPatchTimeStep(nn.Module):
         self.linear1 = nn.Sequential(
             nn.Conv2d(ndf * nf_mult, 128, kernel_size=kw, stride=1, padding=padw),
             norm_layer(128),
-            nn.LeakyReLU(0.2, True),
             nn.Conv2d(128, 32, kernel_size=kw, stride=1, padding=padw),
             norm_layer(32),
-            nn.LeakyReLU(0.2, True),
             nn.Conv2d(32, self.hundred_num, kernel_size=kw, stride=1, padding=padw)
         )
         self.linear2 = nn.Sequential(
             nn.Conv2d(ndf * nf_mult, 128, kernel_size=kw, stride=1, padding=padw),
             norm_layer(128),
-            nn.LeakyReLU(0.2, True),
             nn.Conv2d(128, 32, kernel_size=kw, stride=1, padding=padw),
             norm_layer(32),
-            nn.LeakyReLU(0.2, True),
             nn.Conv2d(32, 10, kernel_size=kw, stride=1, padding=padw)
         )
         self.linear3 = nn.Sequential(
             nn.Conv2d(ndf * nf_mult, 128, kernel_size=kw, stride=1, padding=padw),
             norm_layer(128),
-            nn.LeakyReLU(0.2, True),
             nn.Conv2d(128, 32, kernel_size=kw, stride=1, padding=padw),
             norm_layer(32),
-            nn.LeakyReLU(0.2, True),
             nn.Conv2d(32, 9, kernel_size=kw, stride=1, padding=padw)
         )
 
