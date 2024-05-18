@@ -338,7 +338,7 @@ class GetPatchTimeStep(nn.Module):
         temp1 = F.softmax(self.linear1(temp),dim=1)
         temp2 = F.softmax(self.linear2(temp),dim=1)
         temp3 = F.softmax(self.linear3(temp),dim=1)
-        return temp1.permute(0,2,3,1), temp2.permute(0,2,3,1), temp3.permute(0,2,3,1)
+        return temp1, temp2, temp3
 
 ##############################################################################
 # Classes
