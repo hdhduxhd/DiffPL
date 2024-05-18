@@ -32,6 +32,19 @@ class GaussianDiffusion:
 
         return sqrt_alphas_cumprod_t * x_start + sqrt_one_minus_alphas_cumprod_t * noise
 
+    def patch_q_sample(self, x_start, t, noise=None):
+        if noise is None:
+            noise = torch.randn_like(x_start)
+
+        t = t.permute(0,3,1,2)
+        alphas_t = torch.exp(-1 * t /100)
+        sqrt_alphas_t = torch.sqrt(alphas_t)
+        sqrt_one_minus_alphas_t = torch.sqrt(1.0 - alphas_t)
+        sqrt_alphas_t = F.interpolate(sqrt_alphas_t, size=(512, 512), mode='nearest')
+        sqrt_one_minus_alphas_t = F.interpolate(sqrt_one_minus_alphas_t, size=(512, 512), mode='nearest')
+
+        return sqrt_alphas_t * x_start + sqrt_one_minus_alphas_t * noise
+
 from torch.autograd import Variable
 import torch.nn.functional as F
 def sample_gumbel(shape, eps=1e-20, tens_type=torch.FloatTensor):
