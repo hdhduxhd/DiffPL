@@ -275,6 +275,77 @@ class GetTimeStep(nn.Module):
         temp3 = F.softmax(linear3(temp),dim=1)
         return temp1, temp2, temp3
 
+class GetPatchTimeStep(nn.Module):
+    def __init__(self, input_nc, ndf=64, n_layers=4, norm_layer=nn.BatchNorm2d, max_timestep=500):
+        super(GetPatchTimeStep, self).__init__()
+        # self.max_timestep = max_timestep
+        self.hundred_num = max_timestep//100
+        if type(norm_layer) == functools.partial:
+            use_bias = norm_layer.func == nn.InstanceNorm2d
+        else:
+            use_bias = norm_layer == nn.InstanceNorm2d
+
+        kw = 3
+        padw = 1
+        sequence = [nn.Conv2d(input_nc, ndf, kernel_size=kw, stride=2, padding=padw), nn.LeakyReLU(0.2, True)]
+        nf_mult = 1
+        nf_mult_prev = 1
+        for n in range(1, n_layers):
+            nf_mult_prev = nf_mult
+            nf_mult = min(2 ** n, 16)
+            sequence += [
+                nn.Conv2d(ndf * nf_mult_prev, ndf * nf_mult, kernel_size=kw, stride=2, padding=padw, bias=use_bias),
+                norm_layer(ndf * nf_mult),
+                nn.LeakyReLU(0.2, True)
+            ]
+
+        nf_mult_prev = nf_mult
+        nf_mult = min(2 ** n_layers, 16)
+        sequence += [
+            nn.Conv2d(ndf * nf_mult_prev, ndf * nf_mult, kernel_size=kw, stride=1, padding=padw, bias=use_bias),
+            norm_layer(ndf * nf_mult),
+            nn.LeakyReLU(0.2, True)
+        ]
+#         sequence += [nn.Conv2d(ndf * nf_mult, 1, kernel_size=kw, stride=1, padding=padw)]
+#         sequence += [nn.Flatten()]  # 将特征图展平
+        self.model = nn.Sequential(*sequence)
+    
+        self.linear1 = nn.Sequential(
+            nn.Conv2d(ndf * nf_mult, 128, kernel_size=kw, stride=1, padding=padw),
+            norm_layer(128),
+            nn.LeakyReLU(0.2, True),
+            nn.Conv2d(128, 32, kernel_size=kw, stride=1, padding=padw),
+            norm_layer(32),
+            nn.LeakyReLU(0.2, True),
+            nn.Conv2d(32, self.hundred_num, kernel_size=kw, stride=1, padding=padw)
+        )
+        self.linear2 = nn.Sequential(
+            nn.Conv2d(ndf * nf_mult, 128, kernel_size=kw, stride=1, padding=padw),
+            norm_layer(128),
+            nn.LeakyReLU(0.2, True),
+            nn.Conv2d(128, 32, kernel_size=kw, stride=1, padding=padw),
+            norm_layer(32),
+            nn.LeakyReLU(0.2, True),
+            nn.Conv2d(32, 10, kernel_size=kw, stride=1, padding=padw)
+        )
+        self.linear3 = nn.Sequential(
+            nn.Conv2d(ndf * nf_mult, 128, kernel_size=kw, stride=1, padding=padw),
+            norm_layer(128),
+            nn.LeakyReLU(0.2, True),
+            nn.Conv2d(128, 32, kernel_size=kw, stride=1, padding=padw),
+            norm_layer(32),
+            nn.LeakyReLU(0.2, True),
+            nn.Conv2d(32, 9, kernel_size=kw, stride=1, padding=padw)
+        )
+
+    def forward(self, input):
+        temp = self.model(input)
+        
+        temp1 = F.softmax(self.linear1(temp),dim=1)
+        temp2 = F.softmax(self.linear2(temp),dim=1)
+        temp3 = F.softmax(self.linear3(temp),dim=1)
+        return temp1.permute(0,2,3,1), temp2.permute(0,2,3,1), temp3.permute(0,2,3,1)
+
 ##############################################################################
 # Classes
 ##############################################################################
