@@ -194,7 +194,7 @@ class DiffCycleGANModel(BaseModel):
         # self.t = torch.randint(0, 100, (batch_size,), device=self.device).long()
         """Run forward pass; called by both functions <optimize_parameters> and <test>."""
         self.noise_real_A = torch.randn_like(self.real_A)
-        self.real_A_noise = self.diffusion.q_sample(self.real_A, self.t, noise=self.noise_real_A)
+        self.real_A_noise = self.diffusion.patch_q_sample(self.real_A, self.t, noise=self.noise_real_A)
         # self.noise_real_A = torch.randn_like(self.real_A[:,:1,...])
         # self.real_A_noise = torch.cat([self.diffusion.q_sample(self.real_A[:,:1,...], self.t_cup, noise=self.noise_real_A),
         #                                 self.diffusion.q_sample(self.real_A[:,1:,...], self.t_disc, noise=self.noise_real_A)], dim=1)
@@ -203,7 +203,7 @@ class DiffCycleGANModel(BaseModel):
         self.fake_B = self.netG_A(self.real_A_noise)  # G_A(A)
 
         self.noise_fake_B = torch.randn_like(self.fake_B)
-        self.fake_B_noise = self.diffusion.q_sample(self.fake_B, self.t, noise=self.noise_fake_B)
+        self.fake_B_noise = self.diffusion.patch_q_sample(self.fake_B, self.t, noise=self.noise_fake_B)
         # self.noise_fake_B = torch.randn_like(self.fake_B[:,:1,...])
         # self.fake_B_noise = torch.cat([self.diffusion.q_sample(self.fake_B[:,:1,...], self.t_cup, noise=self.noise_fake_B),
         #                                 self.diffusion.q_sample(self.fake_B[:,1:,...], self.t_disc, noise=self.noise_fake_B)], dim=1)
@@ -212,7 +212,7 @@ class DiffCycleGANModel(BaseModel):
         self.rec_A = self.netG_B(self.fake_B_noise)   # G_B(G_A(A))
 
         self.noise_real_B = torch.randn_like(self.real_B)
-        self.real_B_noise = self.diffusion.q_sample(self.real_B, self.t, noise=self.noise_real_B)
+        self.real_B_noise = self.diffusion.patch_q_sample(self.real_B, self.t, noise=self.noise_real_B)
         # self.noise_real_B = torch.randn_like(self.real_B[:,:1,...])
         # self.real_B_noise = torch.cat([self.diffusion.q_sample(self.real_B[:,:1,...], self.t_cup, noise=self.noise_real_B),
         #                                 self.diffusion.q_sample(self.real_B[:,1:,...], self.t_disc, noise=self.noise_real_B)], dim=1)
@@ -221,7 +221,7 @@ class DiffCycleGANModel(BaseModel):
         self.fake_A = self.netG_B(self.real_B_noise)  # G_B(B)
 
         self.noise_fake_A = torch.randn_like(self.fake_A)
-        self.fake_A_noise = self.diffusion.q_sample(self.fake_A, self.t, noise=self.noise_fake_A)
+        self.fake_A_noise = self.diffusion.patch_q_sample(self.fake_A, self.t, noise=self.noise_fake_A)
         # self.noise_fake_A = torch.randn_like(self.fake_A[:,:1,...])
         # self.fake_A_noise = torch.cat([self.diffusion.q_sample(self.fake_A[:,:1,...], self.t_cup, noise=self.noise_fake_A),
         #                                 self.diffusion.q_sample(self.fake_A[:,1:,...], self.t_disc, noise=self.noise_fake_A)], dim=1)
@@ -257,7 +257,7 @@ class DiffCycleGANModel(BaseModel):
         # t_disc = (y1 @ column_vector1.float()) * 100 + (y2 @ column_vector2.float()) * 10 + (y3 @ column_vector3.float())
 
         noise_input = torch.randn_like(input)
-        input_noise = self.diffusion.q_sample(input, t, noise=noise_input)
+        input_noise = self.diffusion.patch_q_sample(input, t, noise=noise_input)
         # noise_input = torch.randn_like(input[:,:1,...])
         # input_noise = torch.cat([self.diffusion.q_sample(input[:,:1,...], t_cup, noise=noise_input),
         #                             self.diffusion.q_sample(input[:,1:,...], t_disc, noise=noise_input)], dim=1)
@@ -269,7 +269,7 @@ class DiffCycleGANModel(BaseModel):
             output1 = torch.from_numpy(output1).to(self.device)
         
         noise_output1 = torch.randn_like(output1)
-        output1_noise = self.diffusion.q_sample(output1, t, noise=noise_output1)
+        output1_noise = self.diffusion.patch_q_sample(output1, t, noise=noise_output1)
         # noise_output1 = torch.randn_like(output1[:,:1,...])
         # output1_noise = torch.cat([self.diffusion.q_sample(output1[:,:1,...], t_cup, noise=noise_output1),
         #                             self.diffusion.q_sample(output1[:,1:,...], t_disc, noise=noise_output1)], dim=1)
@@ -385,9 +385,10 @@ class DiffCycleGANModel(BaseModel):
         # self.loss_diff_fake_A = F.mse_loss(self.fake_A_latent, self.fake_A_noise) 
         # self.loss_diff = (self.loss_diff_real_A + self.loss_diff_fake_B + self.loss_diff_real_B + self.loss_diff_fake_A) * lambda_N
         # combined loss and calculate gradients
-        mask = torch.zeros_like(self.rec_B)
-        mask[self.rec_B>=0.75] = 1
-        self.loss_circularity = circularity_2label(mask * self.rec_B)
+        # mask = torch.zeros_like(self.rec_B)
+        # mask[self.rec_B>=0.75] = 1
+        # self.loss_circularity = circularity_2label(mask * self.rec_B)
+        self.loss_circularity = 0
         self.loss_G = self.loss_G_A + self.loss_G_B + self.loss_cycle_A + self.loss_cycle_B + self.loss_idt_A + self.loss_idt_B + self.loss_circularity
         self.loss_G.backward()
         
