@@ -127,7 +127,7 @@ class DiffCycleGANModel(BaseModel):
                                         not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
         self.netG_B = networks.define_G(opt.output_nc, opt.input_nc, opt.ngf, opt.netG, opt.norm,
                                         not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
-        self.netG_N = networks.define_N(opt.input_nc, opt.ngf, opt.n_layers_D, opt.max_timestep, opt.norm, opt.init_type, opt.init_gain, self.gpu_ids)
+        self.netG_N = networks.define_N(opt.input_nc, opt.ngf, opt.n_layers_N, opt.max_timestep, opt.norm, opt.init_type, opt.init_gain, self.gpu_ids)
         # self.netG_N_cup = networks.define_N(opt.input_nc, opt.ngf, opt.n_layers_D, opt.max_timestep, opt.norm, opt.init_type, opt.init_gain, self.gpu_ids)
         # self.netG_N_disc = networks.define_N(opt.input_nc, opt.ngf, opt.n_layers_D, opt.max_timestep, opt.norm, opt.init_type, opt.init_gain, self.gpu_ids)
         self.diffusion = GaussianDiffusion()
