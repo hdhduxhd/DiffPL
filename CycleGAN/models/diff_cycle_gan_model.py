@@ -281,7 +281,7 @@ class DiffCycleGANModel(BaseModel):
             output2 = torch.from_numpy(output2).to(self.device)
 
         # return output1, output2, t  #refine, recon
-        return output1, output2, input_noise, output1_noise
+        return output1, output2, input_noise, output1_noise, t
 
     # def compute_visuals(self):
     #     self.visual_names.extend(['fake_B_sample', 'rec_A_sample', 'fake_A_sample', 'rec_B_sample'])
