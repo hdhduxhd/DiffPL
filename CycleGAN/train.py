@@ -151,7 +151,7 @@ if __name__ == '__main__':
                 # target_prob_pl = F.interpolate(target_prob_pl, size=(256, 256), mode='bilinear', align_corners=False)
                 target_label = target_label.to(device)
                 target_prob_pl = target_prob_pl.to(device)
-                refine_target_new_pl, recon_target_new_pl, _ = model.get_output_B(target_prob_pl, type1='one', type2='one')
+                refine_target_new_pl, recon_target_new_pl, _, _, _ = model.get_output_B(target_prob_pl, type1='one', type2='one')
                 refine_target_new_pl[refine_target_new_pl > 0.75] = 1
                 refine_target_new_pl[refine_target_new_pl <= 0.75] = 0
                 recon_target_new_pl[recon_target_new_pl > 0.75] = 1
