@@ -213,7 +213,7 @@ def define_D(input_nc, ndf, netD, n_layers_D=3, norm='batch', init_type='normal'
 def define_N(input_nc, ndf, n_layers_D=3, max_timestep=500, norm='batch', init_type='normal', init_gain=0.02, gpu_ids=[]):
     norm_layer = get_norm_layer(norm_type=norm)
 
-    net = GetPatchTimeStep(input_nc, ndf, n_layers=n_layers_D, norm_layer=norm_layer, max_timestep=max_timestep)
+    net = GetTimeStep(input_nc, ndf, n_layers=n_layers_D, norm_layer=norm_layer, max_timestep=max_timestep)
     return init_net(net, init_type, init_gain, gpu_ids)
 
 class GetTimeStep(nn.Module):
