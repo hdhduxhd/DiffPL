@@ -102,6 +102,7 @@ class DeepLab(nn.Module):
         print("ft: ",ft.shape)
 
         aff_disc = torch.exp(-torch.mean(torch.abs(ft-ff), dim=1))
+        print("aff_disc: ",aff_disc.shape)
 
         if to_dense:
             aff_disc = aff_disc.view(-1).cpu()
@@ -116,6 +117,7 @@ class DeepLab(nn.Module):
             aff_disc = sparse.FloatTensor(torch.cat([indices, indices_id, indices_tp], dim=1),
                                       torch.cat([aff_disc, torch.ones([area]), aff_disc])).to_dense().cuda()
 
+        print("aff_disc: ",aff_disc.shape)
         return x1, x2, feature_last, aff_cup, aff_disc
 
     def freeze_bn(self):
