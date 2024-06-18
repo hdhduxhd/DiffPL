@@ -48,7 +48,7 @@ class DeepLab(nn.Module):
             self.freeze_bn()
 
     def forward(self, input, to_dense=False):
-        print("x: ", x.shape)
+        print("x: ", input.shape)
         x, low_level_feat = self.backbone(input)
         x = self.aspp(x)
         feature = x #torch.Size([8, 256, 32, 32])
