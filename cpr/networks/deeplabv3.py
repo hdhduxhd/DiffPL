@@ -48,6 +48,7 @@ class DeepLab(nn.Module):
             self.freeze_bn()
 
     def forward(self, input, to_dense=False):
+        print("x: ", x.shape)
         x, low_level_feat = self.backbone(input)
         x = self.aspp(x)
         feature = x #torch.Size([8, 256, 32, 32])
@@ -97,6 +98,8 @@ class DeepLab(nn.Module):
 
         ff = torch.unsqueeze(ff, dim=2)
         ft = ft.view(ft.size(0), ft.size(1), -1, ff.size(3))
+        print("ff: ",ff.shape)
+        print("ft: ",ft.shape)
 
         aff_disc = torch.exp(-torch.mean(torch.abs(ft-ff), dim=1))
 
