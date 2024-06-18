@@ -100,22 +100,27 @@ if __name__ == '__main__':
 
         with torch.no_grad():
             _, _, _, aff_cup, aff_disc = model.forward(img.cuda(), True)
+            print(img.shape)
+            print(aff_cup.shape)
             aff_mat_cup = torch.pow(aff_cup, args.beta)
             aff_mat_disc = torch.pow(aff_disc, args.beta)
 
             trans_mat_cup = aff_mat_cup / torch.sum(aff_mat_cup, dim=0, keepdim=True)
             trans_mat_disc = aff_mat_disc / torch.sum(aff_mat_disc, dim=0, keepdim=True)
+            print("trans_mat_cup: ",trans_mat_cup.shape)
 
             for _ in range(args.logt):
                 trans_mat_cup = torch.matmul(trans_mat_cup, trans_mat_cup)
                 trans_mat_disc = torch.matmul(trans_mat_disc, trans_mat_disc)
-            
+            print("trans_mat_cup: ",trans_mat_cup.shape)
 
             cam_vec_cup = cam[:,0].view(1,-1)
             cam_vec_disc = cam[:,1].view(1,-1)
+            print("cam_vec_cup:", cam_vec_cup.shape)
 
             cam_rw_cup = torch.matmul(cam_vec_cup.cuda(), trans_mat_cup)
             cam_rw_disc = torch.matmul(cam_vec_disc.cuda(), trans_mat_disc)
+            print("cam_rw_cup: ", cam_rw_cup.shape)
 
             cam_rw_cup = cam_rw_cup.view(1, 1, dheight, dwidth)
             cam_rw_disc = cam_rw_disc.view(1, 1, dheight, dwidth)
