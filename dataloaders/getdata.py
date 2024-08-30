@@ -10,7 +10,7 @@ composed_transforms_tr = transforms.Compose([
     tr.RandomScaleCrop(512),
     tr.RandomRotate(),
     tr.RandomFlip(),
-    tr.elastic_transform(),
+    # tr.elastic_transform(),
     tr.add_salt_pepper_noise(),
     tr.adjust_light(),
     tr.eraser(),
