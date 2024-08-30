@@ -6,8 +6,8 @@ from dataloaders import custom_transforms as tr
 
 # 1. dataset
 composed_transforms_tr = transforms.Compose([
-    #tr.Resize(512),###
-    tr.RandomScaleCrop(512),
+    tr.Resize(512),###
+    # tr.RandomScaleCrop(512),
     tr.RandomRotate(),
     tr.RandomFlip(),
     # tr.elastic_transform(),
